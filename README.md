@@ -14,7 +14,11 @@ The library only needs to be setup. Once it is done, the authentication will hap
 import datetime
 
 import httpx
-from httpx_keycloak import KeycloakClient, AccessTokenProviderFactory, AuthenticationTransportWrapper
+from httpx_keycloak import (
+	KeycloakClient,
+	AccessTokenProviderFactory,
+	AuthenticationTransportWrapper
+)
 
 
 api_client = httpx.Client(base_url='http://example')
