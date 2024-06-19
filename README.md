@@ -17,7 +17,8 @@ import httpx
 from httpx_keycloak import (
 	KeycloakClient,
 	AccessTokenProviderFactory,
-	AuthenticationTransportWrapper
+	AuthenticationTransportWrapper,
+	ClientCredentials
 )
 
 
@@ -25,7 +26,7 @@ api_client = httpx.Client(base_url='http://example')
 
 # ============== ADD THIS ==============
 
-access_token_provider_factory = AccessTokenProviderFactory(
+access_token_providers = AccessTokenProviderFactory(
 	KeycloakClient(
 		httpx.Client(base_url='http://localhost:8080/realms/master'),
 		datetime.datetime.now
@@ -33,9 +34,11 @@ access_token_provider_factory = AccessTokenProviderFactory(
 	datetime.datetime.now
 )
 
+credentials = ClientCredentials(CLIENT_ID, CLIENT_SECRET, ('scope-1', 'scope-2'))
+
 api_client._transport = AuthenticationTransportWrapper(
 	api_client._transport,
-	access_token_provider_factory.client_credentials(CLIENT_ID, CLIENT_SECRET, ('scope-1', 'scope-2'))
+	access_token_providers.client_credentials(credentials)
 )
 
 # ===== JUST THIS, NOW USE A USUAL =====

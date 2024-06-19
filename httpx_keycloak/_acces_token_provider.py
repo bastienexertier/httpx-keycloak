@@ -32,9 +32,9 @@ class AccessTokenProviderFactory:
 		self.keycloak = keycloak_client
 		self.datetime_provider = datetime_provider
 
-	def client_credentials(self, client_id: str, secret: str, scopes: Scopes) -> AccessTokenProvider:
+	def client_credentials(self, credentials: ClientCredentials) -> AccessTokenProvider:
 		return ClientCredentialsAccessTokenProvider(
 			self.keycloak,
 			self.datetime_provider,
-			ClientCredentials(client_id, secret, scopes)
+			credentials
 		)
