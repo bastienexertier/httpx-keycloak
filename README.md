@@ -27,11 +27,7 @@ api_client = httpx.Client(base_url='http://example')
 # ============== ADD THIS ==============
 
 access_token_providers = AccessTokenProviderFactory(
-	KeycloakClient(
-		httpx.Client(base_url='http://localhost:8080/realms/master'),
-		datetime.datetime.now
-	),
-	datetime.datetime.now
+	KeycloakClient(httpx.Client(base_url='http://localhost:8080/realms/master'))
 )
 
 credentials = ClientCredentials(CLIENT_ID, CLIENT_SECRET, ('scope-1', 'scope-2'))

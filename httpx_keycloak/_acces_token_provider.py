@@ -1,15 +1,18 @@
 
+import datetime
+from typing import Optional
+
 from ._keycloak_client import KeycloakClient
 from ._interfaces import DatetimeProvider, AccessTokenProvider
-from ._model import ClientCredentials, Scopes, KeycloakToken
+from ._model import ClientCredentials, KeycloakToken
 
 
 class ClientCredentialsAccessTokenProvider(AccessTokenProvider):
 
-	def __init__(self, keycloak_client: KeycloakClient, datetime_provider: DatetimeProvider, credentials: ClientCredentials):
+	def __init__(self, keycloak_client: KeycloakClient, credentials: ClientCredentials, datetime_provider: DatetimeProvider):
 		self.keycloak = keycloak_client
-		self.datetime_provider = datetime_provider
 		self.credentials = credentials
+		self.datetime_provider = datetime_provider
 
 		self.token: KeycloakToken|None = None
 
@@ -28,13 +31,13 @@ class ClientCredentialsAccessTokenProvider(AccessTokenProvider):
 
 class AccessTokenProviderFactory:
 
-	def __init__(self, keycloak_client: KeycloakClient, datetime_provider: DatetimeProvider):
+	def __init__(self, keycloak_client: KeycloakClient, datetime_provider: Optional[DatetimeProvider]=None):
 		self.keycloak = keycloak_client
-		self.datetime_provider = datetime_provider
+		self.datetime_provider = datetime_provider or datetime.datetime.now
 
 	def client_credentials(self, credentials: ClientCredentials) -> AccessTokenProvider:
 		return ClientCredentialsAccessTokenProvider(
 			self.keycloak,
+			credentials,
 			self.datetime_provider,
-			credentials
 		)

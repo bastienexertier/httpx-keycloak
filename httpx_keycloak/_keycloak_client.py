@@ -1,6 +1,6 @@
 
 import datetime
-from typing import TypedDict
+from typing import TypedDict, Optional
 
 import httpx
 
@@ -23,9 +23,9 @@ class KeycloakError(Exception):
 
 class KeycloakClient:
 
-	def __init__(self, http: httpx.Client, datetime_provider: DatetimeProvider):
+	def __init__(self, http: httpx.Client, datetime_provider: Optional[DatetimeProvider]=None):
 		self.http = http
-		self.datetime_provider = datetime_provider
+		self.datetime_provider = datetime_provider or datetime.datetime.now
 		self.open_id_configuration = self.__get_open_id_configuration()
 
 	def __get_open_id_configuration(self) -> OpenIDConfiguration:
