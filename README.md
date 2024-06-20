@@ -43,6 +43,39 @@ api_client.get('/users')
 
 ```
 
+## Resource Owner
+
+```python
+import httpx
+from httpx_keycloak import (
+	KeycloakClient,
+	AccessTokenProviderFactory,
+	ClientCredentialsAuthenticationTransport,
+	ClientCredentials
+)
+
+
+api_client = httpx.Client(base_url='http://example')
+
+# ============== ADD THIS ==============
+
+access_token_providers = AccessTokenProviderFactory(
+	KeycloakClient(httpx.Client(base_url='http://localhost:8080/realms/master'))
+)
+
+credentials = ResourceOwnerCredentials(USERNAME, PASSWORD, CLIENT_ID, ('scope-1', 'scope-2')) # <<<
+
+api_client._transport = ClientCredentialsAuthenticationTransport(
+	api_client._transport,
+	access_token_providers.resource_owner(credentials) # <<<
+)
+
+# ===== JUST THIS. NOW USE A USUAL =====
+
+api_client.get('/users')
+
+```
+
 ## Token Exchange
 
 ```python
@@ -64,9 +97,9 @@ access_token_providers = AccessTokenProviderFactory(
 
 credentials = ClientCredentials(CLIENT_ID, CLIENT_SECRET, ('scope-1', 'scope-2'))
 
-api_client._transport = TokenExchangeAuthenticationTransport( # < change this
+api_client._transport = TokenExchangeAuthenticationTransport( # <<<
 	api_client._transport,
-	access_token_providers.token_exchange(credentials) # < and this
+	access_token_providers.token_exchange(credentials) # <<<
 )
 
 # ===== JUST THIS. NOW USE A USUAL =====
