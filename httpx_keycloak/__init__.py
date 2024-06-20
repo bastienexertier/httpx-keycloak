@@ -17,6 +17,7 @@ from ._acces_token_provider import (
 )
 from ._model import (
 	ClientCredentials,
+	ResourceOwnerCredentials,
 	Scopes,
 	KeycloakToken
 )

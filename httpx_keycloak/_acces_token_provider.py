@@ -1,19 +1,17 @@
 
 import datetime
+from abc import ABC, abstractmethod
 from typing import Optional
 
 from ._keycloak_client import KeycloakClient
 from ._interfaces import DatetimeProvider, AccessTokenProvider
-from ._model import ClientCredentials, KeycloakToken
+from ._model import ClientCredentials, ResourceOwnerCredentials, KeycloakToken
 
 
-class ClientCredentialsAccessTokenProvider:
+class BaseClientAccessTokenProvider(ABC):
 
-	def __init__(self, keycloak_client: KeycloakClient, credentials: ClientCredentials, datetime_provider: DatetimeProvider):
-		self.keycloak = keycloak_client
-		self.credentials = credentials
+	def __init__(self, datetime_provider: DatetimeProvider):
 		self.datetime_provider = datetime_provider
-
 		self.token: KeycloakToken|None = None
 
 	def get_token(self) -> KeycloakToken:
@@ -21,8 +19,32 @@ class ClientCredentialsAccessTokenProvider:
 			return self.token
 		return self.get_new_token()
 
+	@abstractmethod
+	def get_new_token(self) -> KeycloakToken:
+		...
+
+
+class ClientCredentialsAccessTokenProvider(BaseClientAccessTokenProvider):
+
+	def __init__(self, keycloak_client: KeycloakClient, credentials: ClientCredentials, datetime_provider: DatetimeProvider):
+		super().__init__(datetime_provider)
+		self.keycloak = keycloak_client
+		self.credentials = credentials
+
 	def get_new_token(self) -> KeycloakToken:
 		self.token = self.keycloak.get_token_client_credentials(self.credentials)
+		return self.token
+
+
+class ResourceOwnerAccessTokenProvider(BaseClientAccessTokenProvider):
+
+	def __init__(self, keycloak_client: KeycloakClient, credentials: ResourceOwnerCredentials, datetime_provider: DatetimeProvider):
+		super().__init__(datetime_provider)
+		self.keycloak = keycloak_client
+		self.credentials = credentials
+
+	def get_new_token(self) -> KeycloakToken:
+		self.token = self.keycloak.get_token_resource_owner(self.credentials)
 		return self.token
 
 
@@ -55,6 +77,13 @@ class AccessTokenProviderFactory:
 
 	def client_credentials(self, credentials: ClientCredentials) -> AccessTokenProvider:
 		return ClientCredentialsAccessTokenProvider(
+			self.keycloak,
+			credentials,
+			self.datetime_provider,
+		)
+
+	def resource_owner(self, credentials: ResourceOwnerCredentials) -> AccessTokenProvider:
+		return ResourceOwnerAccessTokenProvider(
 			self.keycloak,
 			credentials,
 			self.datetime_provider,

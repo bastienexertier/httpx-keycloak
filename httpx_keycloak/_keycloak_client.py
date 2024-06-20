@@ -5,7 +5,7 @@ from typing import TypedDict, Optional
 import httpx
 
 from ._interfaces import DatetimeProvider, KeycloakError
-from ._model import ClientCredentials, Scopes, KeycloakToken
+from ._model import ClientCredentials, ResourceOwnerCredentials, Scopes, KeycloakToken
 
 
 class OpenIDConfiguration(TypedDict):
@@ -22,9 +22,10 @@ class KeycloakClient:
 	def __init__(self, http: httpx.Client, datetime_provider: Optional[DatetimeProvider]=None):
 		self.http = http
 		self.datetime_provider = datetime_provider or datetime.datetime.now
-		self.open_id_configuration = self.__get_open_id_configuration()
+		self.openid_config = self.__get_openid_config()
 
-	def __get_open_id_configuration(self) -> OpenIDConfiguration:
+
+	def __get_openid_config(self) -> OpenIDConfiguration:
 		response = self.http.get('/.well-known/openid-configuration/')
 
 		if response.status_code == 404:
@@ -32,40 +33,37 @@ class KeycloakClient:
 
 		return response.json()
 
+
 	def get_token_client_credentials(self, credentials: ClientCredentials) -> KeycloakToken:
 
-		response = self.http.post(
-			self.open_id_configuration['token_endpoint'],
-			data={
-				"client_id": credentials.client_id,
-				"client_secret": credentials.client_secret,
-				"grant_type": "client_credentials",
-				"scope": str.join(' ', credentials.scopes)
-			}
-		)
+		response = self.http.post(self.openid_config['token_endpoint'], data=credentials.request_body())
 
 		data = response.json()
 
 		if response.is_error:
 			raise KeycloakError(f"[{response.status_code}] {data['error']} - {data['error_description']}")
 
-		return KeycloakToken(
-			token_type=data['token_type'],
-			access_token=data['access_token'],
-			emitted_at=self.datetime_provider() - response.elapsed,
-			expires_in=datetime.timedelta(seconds=data['expires_in']),
-			scopes=Scopes(data['scope'].split(' '))
-		)
+		return KeycloakToken.from_dict(data, emitted_at=self.datetime_provider() - response.elapsed)
+
+
+	def get_token_resource_owner(self, credentials: ResourceOwnerCredentials) -> KeycloakToken:
+
+		response = self.http.post(self.openid_config['token_endpoint'], data=credentials.request_body())
+
+		data = response.json()
+
+		if response.is_error:
+			raise KeycloakError(f"[{response.status_code}] {data['error']} - {data['error_description']}")
+
+		return KeycloakToken.from_dict(data, emitted_at=self.datetime_provider() - response.elapsed)
+
 
 	def exchange_token(self, credentials: ClientCredentials, access_token: str):
 
 		response = self.http.post(
-			self.open_id_configuration['token_endpoint'],
-			data={
-				"client_id": credentials.client_id,
-				"client_secret": credentials.client_secret,
+			self.openid_config['token_endpoint'],
+			data=credentials.request_body() | {
 				"grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
-				"scope": str.join(' ', credentials.scopes),
 				"subject_token": access_token,
 				"subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
 			}
@@ -76,10 +74,4 @@ class KeycloakClient:
 		if response.is_error:
 			raise KeycloakError(f"[{response.status_code}] {data['error']} - {data['error_description']}")
 
-		return KeycloakToken(
-			token_type=data['token_type'],
-			access_token=data['access_token'],
-			emitted_at=self.datetime_provider() - response.elapsed,
-			expires_in=datetime.timedelta(seconds=data['expires_in']),
-			scopes=Scopes(data['scope'].split(' '))
-		)
+		return KeycloakToken.from_dict(data, emitted_at=self.datetime_provider() - response.elapsed)
