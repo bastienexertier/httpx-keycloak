@@ -17,7 +17,7 @@ import httpx
 from httpx_keycloak import (
 	KeycloakClient,
 	AccessTokenProviderFactory,
-	ClientCredentialsAuthenticationTransport,
+	ClientAuthenticationTransport,
 	ClientCredentials
 )
 
@@ -32,7 +32,7 @@ access_token_providers = AccessTokenProviderFactory(
 
 credentials = ClientCredentials(CLIENT_ID, CLIENT_SECRET, ('scope-1', 'scope-2'))
 
-api_client._transport = ClientCredentialsAuthenticationTransport(
+api_client._transport = ClientAuthenticationTransport(
 	api_client._transport,
 	access_token_providers.client_credentials(credentials)
 )
@@ -50,7 +50,7 @@ import httpx
 from httpx_keycloak import (
 	KeycloakClient,
 	AccessTokenProviderFactory,
-	ClientCredentialsAuthenticationTransport,
+	ClientAuthenticationTransport,
 	ClientCredentials
 )
 
@@ -65,7 +65,7 @@ access_token_providers = AccessTokenProviderFactory(
 
 credentials = ResourceOwnerCredentials(USERNAME, PASSWORD, CLIENT_ID, ('scope-1', 'scope-2')) # <<<
 
-api_client._transport = ClientCredentialsAuthenticationTransport(
+api_client._transport = ClientAuthenticationTransport(
 	api_client._transport,
 	access_token_providers.resource_owner(credentials) # <<<
 )

@@ -8,10 +8,10 @@ from ._interfaces import (
 	AccessTokenProvider
 )
 from ._transport import (
-	ClientCredentialsAuthenticationTransport,
+	ClientAuthenticationTransport,
 	TokenExchangeAuthenticationTransport
 )
-from ._acces_token_provider import (
+from ._token_provider import (
 	AccessTokenProviderFactory,
 	ClientCredentialsAccessTokenProvider
 )

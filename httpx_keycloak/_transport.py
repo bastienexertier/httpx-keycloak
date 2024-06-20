@@ -20,7 +20,7 @@ class AuthenticationTransportSettings:
 		)
 
 
-class ClientCredentialsAuthenticationTransport(httpx.BaseTransport):
+class ClientAuthenticationTransport(httpx.BaseTransport):
 
 	def __init__(
 		self,
