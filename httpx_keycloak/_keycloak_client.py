@@ -4,7 +4,7 @@ from typing import TypedDict, Optional
 
 import httpx
 
-from ._interfaces import DatetimeProvider
+from ._interfaces import DatetimeProvider, KeycloakError
 from ._model import ClientCredentials, Scopes, KeycloakToken
 
 
@@ -15,10 +15,6 @@ class OpenIDConfiguration(TypedDict):
 	introspection_endpoint: str
 	userinfo_endpoint: str
 	end_session_endpoint: str
-
-
-class KeycloakError(Exception):
-	...
 
 
 class KeycloakClient:
@@ -36,7 +32,7 @@ class KeycloakClient:
 
 		return response.json()
 
-	def get_access_token_client_credentials(self, credentials: ClientCredentials) -> KeycloakToken:
+	def get_token_client_credentials(self, credentials: ClientCredentials) -> KeycloakToken:
 
 		response = self.http.post(
 			self.open_id_configuration['token_endpoint'],
@@ -50,8 +46,33 @@ class KeycloakClient:
 
 		data = response.json()
 
-		if response.status_code == 403:
-			raise KeycloakError('Invalid credentials')
+		if response.is_error:
+			raise KeycloakError(f"[{response.status_code}] {data['error']} - {data['error_description']}")
+
+		return KeycloakToken(
+			token_type=data['token_type'],
+			access_token=data['access_token'],
+			emitted_at=self.datetime_provider() - response.elapsed,
+			expires_in=datetime.timedelta(seconds=data['expires_in']),
+			scopes=Scopes(data['scope'].split(' '))
+		)
+
+	def exchange_token(self, credentials: ClientCredentials, access_token: str):
+
+		response = self.http.post(
+			self.open_id_configuration['token_endpoint'],
+			data={
+				"client_id": credentials.client_id,
+				"client_secret": credentials.client_secret,
+				"grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+				"scope": str.join(' ', credentials.scopes),
+				"subject_token": access_token,
+				"subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
+			}
+		)
+
+		data = response.json()
+
 		if response.is_error:
 			raise KeycloakError(f"[{response.status_code}] {data['error']} - {data['error_description']}")
 

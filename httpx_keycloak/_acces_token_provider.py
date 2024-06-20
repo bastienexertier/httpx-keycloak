@@ -7,7 +7,7 @@ from ._interfaces import DatetimeProvider, AccessTokenProvider
 from ._model import ClientCredentials, KeycloakToken
 
 
-class ClientCredentialsAccessTokenProvider(AccessTokenProvider):
+class ClientCredentialsAccessTokenProvider:
 
 	def __init__(self, keycloak_client: KeycloakClient, credentials: ClientCredentials, datetime_provider: DatetimeProvider):
 		self.keycloak = keycloak_client
@@ -16,17 +16,35 @@ class ClientCredentialsAccessTokenProvider(AccessTokenProvider):
 
 		self.token: KeycloakToken|None = None
 
-
-	def get_access_token(self) -> KeycloakToken:
+	def get_token(self) -> KeycloakToken:
 		if self.token and not self.token.has_expired(self.datetime_provider()):
 			return self.token
-		return self.get_new_access_token()
+		return self.get_new_token()
 
-
-	def get_new_access_token(self) -> KeycloakToken:
-		self.token = self.keycloak.get_access_token_client_credentials(self.credentials)
+	def get_new_token(self) -> KeycloakToken:
+		self.token = self.keycloak.get_token_client_credentials(self.credentials)
 		return self.token
 
+
+class AccessTokenExchanger:
+
+	def __init__(self, keycloak_client: KeycloakClient, credentials: ClientCredentials, datetime_provider: DatetimeProvider):
+		self.keycloak = keycloak_client
+		self.credentials = credentials
+		self.datetime_provider = datetime_provider
+
+		self.tokens: dict[str, KeycloakToken] = {}
+
+	def exchange_token(self, subject_token: str) -> KeycloakToken:
+		token = self.tokens.get(subject_token)
+		if token and not token.has_expired(self.datetime_provider()):
+			return token
+		return self.exchange_new_token(subject_token)
+
+	def exchange_new_token(self, subject_token: str) -> KeycloakToken:
+		token = self.keycloak.exchange_token(self.credentials, subject_token)
+		self.tokens[subject_token] = token
+		return token
 
 
 class AccessTokenProviderFactory:
@@ -37,6 +55,13 @@ class AccessTokenProviderFactory:
 
 	def client_credentials(self, credentials: ClientCredentials) -> AccessTokenProvider:
 		return ClientCredentialsAccessTokenProvider(
+			self.keycloak,
+			credentials,
+			self.datetime_provider,
+		)
+
+	def token_exchange(self, credentials: ClientCredentials) -> AccessTokenExchanger:
+		return AccessTokenExchanger(
 			self.keycloak,
 			credentials,
 			self.datetime_provider,

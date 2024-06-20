@@ -1,27 +1,80 @@
 
+from dataclasses import dataclass
+
 import httpx
 
-from ._interfaces import AccessTokenProvider
+from ._interfaces import AccessTokenProvider, AccessTokenExchanger, KeycloakError
 
 
-class AuthenticationTransportWrapper(httpx.BaseTransport):
+@dataclass(frozen=True)
+class AuthenticationTransportSettings:
 
-	def __init__(self, transport: httpx.BaseTransport, token_provider: AccessTokenProvider, retry_on_401: bool=True):
+	retry_on_401: bool
+	override_existing_auth_header: bool
+
+	@classmethod
+	def default(cls):
+		return cls(
+			retry_on_401=True,
+			override_existing_auth_header=False
+		)
+
+
+class ClientCredentialsAuthenticationTransport(httpx.BaseTransport):
+
+	def __init__(
+		self,
+		transport: httpx.BaseTransport,
+		token_provider: AccessTokenProvider,
+		settings: AuthenticationTransportSettings=AuthenticationTransportSettings.default()
+	):
 		self.transport = transport
 		self.token_provider = token_provider
-		self.retry_on_401 = retry_on_401
+		self.settings = settings
 
 	def handle_request(self, request: httpx.Request) -> httpx.Response:
 
-		if 'Authorization' not in request.headers:
+		if 'Authorization' not in request.headers or self.settings.override_existing_auth_header:
 
-			request.headers['Authorization'] = self.token_provider.get_access_token().to_bearer_string()
+			request.headers['Authorization'] = self.token_provider.get_token().to_bearer_string()
 
 			response = self.transport.handle_request(request)
 
-			if response.status_code == 401 and self.retry_on_401:
-				request.headers['Authorization'] = self.token_provider.get_new_access_token().to_bearer_string()
+			if response.status_code == 401 and self.settings.retry_on_401:
+				request.headers['Authorization'] = self.token_provider.get_new_token().to_bearer_string()
 			else:
 				return response
+
+		return self.transport.handle_request(request)
+
+class TokenExchangeAuthenticationTransport(httpx.BaseTransport):
+
+	def __init__(
+		self,
+		transport: httpx.BaseTransport,
+		token_exchanger: AccessTokenExchanger,
+		settings: AuthenticationTransportSettings=AuthenticationTransportSettings.default()
+	):
+		self.transport = transport
+		self.token_exchanger = token_exchanger
+		self.settings = settings
+
+	def handle_request(self, request: httpx.Request) -> httpx.Response:
+
+		auth_header: str = request.headers.get('Authorization')
+
+		if not auth_header:
+			raise KeycloakError('Missing Authorization header')
+
+		subject_token = auth_header.removeprefix('Bearer ')
+
+		request.headers['Authorization'] = self.token_exchanger.exchange_token(subject_token).to_bearer_string()
+
+		response = self.transport.handle_request(request)
+
+		if response.status_code == 401 and self.settings.retry_on_401:
+			request.headers['Authorization'] = self.token_exchanger.exchange_new_token(subject_token).to_bearer_string()
+		else:
+			return response
 
 		return self.transport.handle_request(request)

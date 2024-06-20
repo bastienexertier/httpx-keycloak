@@ -17,7 +17,10 @@ class KeycloakToken:
 
 	def has_expired(self, now: datetime.datetime) -> bool:
 		""" Returns True if the token has expired at the given time. """
-		return self.emitted_at + self.expires_in >= now
+		print(self.emitted_at)
+		print(self.emitted_at + self.expires_in)
+		print(now)
+		return self.emitted_at + self.expires_in <= now
 
 	def to_bearer_string(self) -> str:
 		""" Returns the string to put in the Authorization header. """
