@@ -34,18 +34,20 @@ class ClientAuthenticationTransport(httpx.BaseTransport):
 
 	def handle_request(self, request: httpx.Request) -> httpx.Response:
 
-		if 'Authorization' not in request.headers or self.settings.override_existing_auth_header:
+		if 'Authorization' in request.headers and not self.settings.override_existing_auth_header:
+			return self.transport.handle_request(request)
 
-			request.headers['Authorization'] = self.token_provider.get_token().to_bearer_string()
+		request.headers['Authorization'] = self.token_provider.get_token().to_bearer_string()
 
-			response = self.transport.handle_request(request)
+		response = self.transport.handle_request(request)
 
-			if response.status_code == 401 and self.settings.retry_on_401:
-				request.headers['Authorization'] = self.token_provider.get_new_token().to_bearer_string()
-			else:
-				return response
+		if response.status_code != 401 or not self.settings.retry_on_401:
+			return response
+
+		request.headers['Authorization'] = self.token_provider.get_new_token().to_bearer_string()
 
 		return self.transport.handle_request(request)
+
 
 class TokenExchangeAuthenticationTransport(httpx.BaseTransport):
 
@@ -72,9 +74,9 @@ class TokenExchangeAuthenticationTransport(httpx.BaseTransport):
 
 		response = self.transport.handle_request(request)
 
-		if response.status_code == 401 and self.settings.retry_on_401:
-			request.headers['Authorization'] = self.token_exchanger.exchange_new_token(subject_token).to_bearer_string()
-		else:
+		if response.status_code != 401 or not self.settings.retry_on_401:
 			return response
+
+		request.headers['Authorization'] = self.token_exchanger.exchange_new_token(subject_token).to_bearer_string()
 
 		return self.transport.handle_request(request)
