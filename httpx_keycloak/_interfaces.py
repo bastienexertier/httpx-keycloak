@@ -2,6 +2,8 @@
 import datetime
 from typing import Callable, Protocol
 
+import httpx
+
 from ._model import KeycloakToken
 
 
@@ -10,6 +12,15 @@ class KeycloakError(Exception):
 
 
 DatetimeProvider = Callable[[], datetime.datetime]
+
+
+class Credentials(Protocol):
+
+	def request_body(self, *, with_credentials:bool=True) -> dict[str, str]:
+		...
+
+	def to_basic_auth(self) -> httpx.BasicAuth:
+		...
 
 
 class AccessTokenProvider(Protocol):

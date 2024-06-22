@@ -4,7 +4,7 @@ from typing import TypedDict, Optional
 
 import httpx
 
-from ._interfaces import DatetimeProvider, KeycloakError
+from ._interfaces import DatetimeProvider, KeycloakError, Credentials
 from ._model import ClientCredentials, ResourceOwnerCredentials, Scopes, KeycloakToken
 
 
@@ -15,6 +15,7 @@ class OpenIDConfiguration(TypedDict):
 	introspection_endpoint: str
 	userinfo_endpoint: str
 	end_session_endpoint: str
+	token_endpoint_auth_methods_supported: list[str]
 
 
 class KeycloakClient:
@@ -34,40 +35,30 @@ class KeycloakClient:
 		return response.json()
 
 
-	def get_token_client_credentials(self, credentials: ClientCredentials) -> KeycloakToken:
+	def get_token(self, credentials: Credentials, access_token: Optional[str]=None) -> KeycloakToken:
 
-		response = self.http.post(self.openid_config['token_endpoint'], data=credentials.request_body())
+		auth_methods_supported = self.openid_config['token_endpoint_auth_methods_supported']
 
-		data = response.json()
+		if 'client_secret_post' in auth_methods_supported:
+			request_body = credentials.request_body()
+			auth = None
+		elif 'client_secret_basic' in auth_methods_supported:
+			request_body = credentials.request_body(with_credentials=False)
+			auth = credentials.to_basic_auth()
+		else:
+			raise KeycloakError('No token auth method supported')
 
-		if response.is_error:
-			raise KeycloakError(f"[{response.status_code}] {data['error']} - {data['error_description']}")
-
-		return KeycloakToken.from_dict(data, emitted_at=self.datetime_provider() - response.elapsed)
-
-
-	def get_token_resource_owner(self, credentials: ResourceOwnerCredentials) -> KeycloakToken:
-
-		response = self.http.post(self.openid_config['token_endpoint'], data=credentials.request_body())
-
-		data = response.json()
-
-		if response.is_error:
-			raise KeycloakError(f"[{response.status_code}] {data['error']} - {data['error_description']}")
-
-		return KeycloakToken.from_dict(data, emitted_at=self.datetime_provider() - response.elapsed)
-
-
-	def exchange_token(self, credentials: ClientCredentials, access_token: str):
-
-		response = self.http.post(
-			self.openid_config['token_endpoint'],
-			data=credentials.request_body() | {
+		if access_token is not None:
+			request_body |= {
 				"grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
 				"subject_token": access_token,
 				"subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
 			}
-		)
+
+		if auth:
+			response = self.http.post(self.openid_config['token_endpoint'], data=request_body, auth=auth)
+		else:
+			response = self.http.post(self.openid_config['token_endpoint'], data=request_body)
 
 		data = response.json()
 

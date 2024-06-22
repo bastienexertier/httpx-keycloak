@@ -2,6 +2,8 @@
 import datetime
 from dataclasses import dataclass
 
+import httpx
+
 
 Scopes = tuple[str, ...]
 
@@ -41,16 +43,22 @@ class ClientCredentials:
 	client_secret: str
 	scopes: Scopes = Scopes()
 
+	grant_type = 'client_credentials'
+
 	def with_scopes(self, scopes: Scopes):
 		""" Returns a copy of the credentials with the given scopes """
 		return self.__class__(self.client_id, self.client_secret, scopes)
 
-	def request_body(self) -> dict[str, str]:
-		data = {
-			"client_id": self.client_id,
-			"client_secret": self.client_secret,
-			"grant_type": "client_credentials"
-		}
+	def to_basic_auth(self) -> httpx.BasicAuth:
+		return httpx.BasicAuth(self.client_id, self.client_secret)
+
+	def request_body(self, *, with_credentials:bool=True) -> dict[str, str]:
+
+		data = {"grant_type": self.grant_type}
+
+		if with_credentials:
+			data["client_id"] = self.client_id
+			data["client_secret"] = self.client_secret
 
 		if self.scopes:
 			data["scope"] = str.join(' ', self.scopes)
@@ -70,13 +78,19 @@ class ResourceOwnerCredentials:
 		""" Returns a copy of the credentials with the given scopes """
 		return self.__class__(self.username, self.password, self.client_id, scopes)
 
-	def request_body(self) -> dict[str, str]:
+	def to_basic_auth(self) -> httpx.BasicAuth:
+		return httpx.BasicAuth(self.client_id, '')
+
+	def request_body(self, *, with_credentials:bool=True) -> dict[str, str]:
+
 		data = {
 				"username": self.username,
 				"password": self.password,
-				"client_id": self.client_id,
 				"grant_type": "password",
 			}
+
+		if with_credentials:
+			data["client_id"] = self.client_id
 
 		if self.scopes:
 			data["scope"] = str.join(' ', self.scopes)

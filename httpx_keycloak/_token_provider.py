@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Optional
 
 from ._keycloak_client import KeycloakClient
-from ._interfaces import DatetimeProvider, AccessTokenProvider
+from ._interfaces import DatetimeProvider, AccessTokenProvider, Credentials
 from ._model import ClientCredentials, ResourceOwnerCredentials, KeycloakToken
 
 
@@ -26,31 +26,19 @@ class BaseClientAccessTokenProvider(ABC):
 
 class ClientCredentialsAccessTokenProvider(BaseClientAccessTokenProvider):
 
-	def __init__(self, keycloak_client: KeycloakClient, credentials: ClientCredentials, datetime_provider: DatetimeProvider):
+	def __init__(self, keycloak_client: KeycloakClient, credentials: Credentials, datetime_provider: DatetimeProvider):
 		super().__init__(datetime_provider)
 		self.keycloak = keycloak_client
 		self.credentials = credentials
 
 	def get_new_token(self) -> KeycloakToken:
-		self.token = self.keycloak.get_token_client_credentials(self.credentials)
-		return self.token
-
-
-class ResourceOwnerAccessTokenProvider(BaseClientAccessTokenProvider):
-
-	def __init__(self, keycloak_client: KeycloakClient, credentials: ResourceOwnerCredentials, datetime_provider: DatetimeProvider):
-		super().__init__(datetime_provider)
-		self.keycloak = keycloak_client
-		self.credentials = credentials
-
-	def get_new_token(self) -> KeycloakToken:
-		self.token = self.keycloak.get_token_resource_owner(self.credentials)
+		self.token = self.keycloak.get_token(self.credentials)
 		return self.token
 
 
 class AccessTokenExchanger:
 
-	def __init__(self, keycloak_client: KeycloakClient, credentials: ClientCredentials, datetime_provider: DatetimeProvider):
+	def __init__(self, keycloak_client: KeycloakClient, credentials: Credentials, datetime_provider: DatetimeProvider):
 		self.keycloak = keycloak_client
 		self.credentials = credentials
 		self.datetime_provider = datetime_provider
@@ -64,7 +52,7 @@ class AccessTokenExchanger:
 		return self.exchange_new_token(subject_token)
 
 	def exchange_new_token(self, subject_token: str) -> KeycloakToken:
-		token = self.keycloak.exchange_token(self.credentials, subject_token)
+		token = self.keycloak.get_token(self.credentials, subject_token)
 		self.tokens[subject_token] = token
 		return token
 
@@ -83,7 +71,7 @@ class AccessTokenProviderFactory:
 		)
 
 	def resource_owner(self, credentials: ResourceOwnerCredentials) -> AccessTokenProvider:
-		return ResourceOwnerAccessTokenProvider(
+		return ClientCredentialsAccessTokenProvider(
 			self.keycloak,
 			credentials,
 			self.datetime_provider,
