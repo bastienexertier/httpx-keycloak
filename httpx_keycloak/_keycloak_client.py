@@ -5,7 +5,7 @@ from typing import TypedDict, Optional
 import httpx
 
 from ._interfaces import DatetimeProvider, KeycloakError, Credentials
-from ._model import ClientCredentials, ResourceOwnerCredentials, Scopes, KeycloakToken
+from ._model import KeycloakToken
 
 
 class OpenIDConfiguration(TypedDict):

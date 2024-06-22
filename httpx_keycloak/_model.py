@@ -45,6 +45,10 @@ class ClientCredentials:
 
 	grant_type = 'client_credentials'
 
+	@property
+	def key(self) -> str:
+		return f'{self.client_id};{self.scopes}'
+
 	def with_scopes(self, scopes: Scopes):
 		""" Returns a copy of the credentials with the given scopes """
 		return self.__class__(self.client_id, self.client_secret, scopes)
@@ -73,6 +77,10 @@ class ResourceOwnerCredentials:
 
 	client_id: str
 	scopes: Scopes = Scopes()
+
+	@property
+	def key(self) -> str:
+		return f'{self.client_id};{self.username};{self.scopes}'
 
 	def with_scopes(self, scopes: Scopes):
 		""" Returns a copy of the credentials with the given scopes """

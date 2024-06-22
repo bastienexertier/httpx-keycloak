@@ -1,35 +1,36 @@
 
 import datetime
-from abc import ABC, abstractmethod
 from typing import Optional
+
+from cachelib.simple import SimpleCache
 
 from ._keycloak_client import KeycloakClient
 from ._interfaces import DatetimeProvider, AccessTokenProvider, Credentials
 from ._model import ClientCredentials, ResourceOwnerCredentials, KeycloakToken
 
 
-class BaseClientAccessTokenProvider(ABC):
 
-	def __init__(self, datetime_provider: DatetimeProvider):
-		self.datetime_provider = datetime_provider
-		self.token: KeycloakToken|None = None
+class ClientCredentialsAccessTokenProvider:
 
-	def get_token(self) -> KeycloakToken:
-		if self.token and not self.token.has_expired(self.datetime_provider()):
-			return self.token
-		return self.get_new_token()
-
-	@abstractmethod
-	def get_new_token(self) -> KeycloakToken:
-		...
-
-
-class ClientCredentialsAccessTokenProvider(BaseClientAccessTokenProvider):
+	token_cache = SimpleCache(threshold=100)
 
 	def __init__(self, keycloak_client: KeycloakClient, credentials: Credentials, datetime_provider: DatetimeProvider):
-		super().__init__(datetime_provider)
+		self.datetime_provider = datetime_provider
 		self.keycloak = keycloak_client
 		self.credentials = credentials
+
+	def get_token(self) -> KeycloakToken:
+
+		token = self.token_cache.get(self.credentials.key)
+
+		if token and not self.token.has_expired(self.datetime_provider()):
+			return token
+
+		token = self.get_new_token()
+
+		self.token_cache.add(self.credentials.key, token, timeout=token.expires_in.seconds)
+
+		return token
 
 	def get_new_token(self) -> KeycloakToken:
 		self.token = self.keycloak.get_token(self.credentials)

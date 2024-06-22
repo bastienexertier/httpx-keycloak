@@ -16,6 +16,10 @@ DatetimeProvider = Callable[[], datetime.datetime]
 
 class Credentials(Protocol):
 
+	@property
+	def key(self) -> str:
+		...
+
 	def request_body(self, *, with_credentials:bool=True) -> dict[str, str]:
 		...
 
