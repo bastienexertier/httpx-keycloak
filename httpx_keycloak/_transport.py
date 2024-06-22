@@ -1,4 +1,5 @@
 
+from typing import Optional
 from dataclasses import dataclass
 
 import httpx
@@ -9,15 +10,8 @@ from ._interfaces import AccessTokenProvider, AccessTokenExchanger, KeycloakErro
 @dataclass(frozen=True)
 class AuthenticationTransportSettings:
 
-	retry_on_401: bool
-	override_existing_auth_header: bool
-
-	@classmethod
-	def default(cls):
-		return cls(
-			retry_on_401=True,
-			override_existing_auth_header=False
-		)
+	retry_on_401: bool = True
+	override_existing_auth_header: bool = False
 
 
 class ClientAuthenticationTransport(httpx.BaseTransport):
@@ -26,11 +20,11 @@ class ClientAuthenticationTransport(httpx.BaseTransport):
 		self,
 		transport: httpx.BaseTransport,
 		token_provider: AccessTokenProvider,
-		settings: AuthenticationTransportSettings=AuthenticationTransportSettings.default()
+		settings: Optional[AuthenticationTransportSettings]=None
 	):
 		self.transport = transport
 		self.token_provider = token_provider
-		self.settings = settings
+		self.settings = settings or AuthenticationTransportSettings()
 
 	def handle_request(self, request: httpx.Request) -> httpx.Response:
 
@@ -55,11 +49,11 @@ class TokenExchangeAuthenticationTransport(httpx.BaseTransport):
 		self,
 		transport: httpx.BaseTransport,
 		token_exchanger: AccessTokenExchanger,
-		settings: AuthenticationTransportSettings=AuthenticationTransportSettings.default()
+		settings: Optional[AuthenticationTransportSettings]=None
 	):
 		self.transport = transport
 		self.token_exchanger = token_exchanger
-		self.settings = settings
+		self.settings = settings or AuthenticationTransportSettings()
 
 	def handle_request(self, request: httpx.Request) -> httpx.Response:
 
