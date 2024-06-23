@@ -1,5 +1,6 @@
 
 import datetime
+from typing import Optional
 from dataclasses import dataclass
 
 import httpx
@@ -45,9 +46,8 @@ class ClientCredentials:
 
 	grant_type = 'client_credentials'
 
-	@property
-	def key(self) -> str:
-		return f'{self.client_id};{self.scopes}'
+	def key(self, other: Optional[str]=None) -> str:
+		return f'{self.client_id};{self.scopes};{other}'
 
 	def with_scopes(self, scopes: Scopes):
 		""" Returns a copy of the credentials with the given scopes """
@@ -78,9 +78,8 @@ class ResourceOwnerCredentials:
 	client_id: str
 	scopes: Scopes = Scopes()
 
-	@property
-	def key(self) -> str:
-		return f'{self.client_id};{self.username};{self.scopes}'
+	def key(self, other: Optional[str]=None) -> str:
+		return f'{self.client_id};{self.username};{self.scopes};{other}'
 
 	def with_scopes(self, scopes: Scopes):
 		""" Returns a copy of the credentials with the given scopes """

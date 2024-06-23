@@ -1,6 +1,6 @@
 
 import datetime
-from typing import Callable, Protocol
+from typing import Callable, Optional, Protocol
 
 import httpx
 
@@ -16,8 +16,7 @@ DatetimeProvider = Callable[[], datetime.datetime]
 
 class Credentials(Protocol):
 
-	@property
-	def key(self) -> str:
+	def key(self, other: Optional[str]=None) -> str:
 		...
 
 	def request_body(self, *, with_credentials:bool=True) -> dict[str, str]:

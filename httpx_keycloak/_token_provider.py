@@ -21,40 +21,54 @@ class ClientCredentialsAccessTokenProvider:
 
 	def get_token(self) -> KeycloakToken:
 
-		token = self.token_cache.get(self.credentials.key)
+		token = self.token_cache.get(self.credentials.key())
 
-		if token and not self.token.has_expired(self.datetime_provider()):
+		if token and not token.has_expired(self.datetime_provider()):
 			return token
 
 		token = self.get_new_token()
 
-		self.token_cache.add(self.credentials.key, token, timeout=token.expires_in.seconds)
+		self.token_cache.add(self.credentials.key(), token, timeout=token.expires_in.seconds)
 
 		return token
 
 	def get_new_token(self) -> KeycloakToken:
-		self.token = self.keycloak.get_token(self.credentials)
-		return self.token
+
+		token = self.keycloak.get_token(self.credentials)
+
+		self.token_cache.add(self.credentials.key(), token, timeout=token.expires_in.seconds)
+
+		return token
 
 
 class AccessTokenExchanger:
+
+	exchanged_token_cache = SimpleCache(threshold=100)
 
 	def __init__(self, keycloak_client: KeycloakClient, credentials: Credentials, datetime_provider: DatetimeProvider):
 		self.keycloak = keycloak_client
 		self.credentials = credentials
 		self.datetime_provider = datetime_provider
 
-		self.tokens: dict[str, KeycloakToken] = {}
-
 	def exchange_token(self, subject_token: str) -> KeycloakToken:
-		token = self.tokens.get(subject_token)
+
+		token = self.exchanged_token_cache.get(self.credentials.key(subject_token))
+
 		if token and not token.has_expired(self.datetime_provider()):
 			return token
-		return self.exchange_new_token(subject_token)
+
+		token = self.exchange_new_token(subject_token)
+
+		self.exchanged_token_cache.add(self.credentials.key(subject_token), token, timeout=token.expires_in.seconds)
+
+		return token
 
 	def exchange_new_token(self, subject_token: str) -> KeycloakToken:
+
 		token = self.keycloak.get_token(self.credentials, subject_token)
-		self.tokens[subject_token] = token
+
+		self.exchanged_token_cache.add(self.credentials.key(subject_token), token, timeout=token.expires_in.seconds)
+
 		return token
 
 
