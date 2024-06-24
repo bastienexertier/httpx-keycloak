@@ -9,6 +9,20 @@ from ._interfaces import DatetimeProvider, AccessTokenProvider, Credentials
 from ._model import ClientCredentials, ResourceOwnerCredentials, KeycloakToken
 
 
+def cache_key(credentials: Credentials, token: Optional[str]=None) -> str:
+
+	if isinstance(credentials, ClientCredentials):
+		key = f'{credentials.client_id};{credentials.scopes}'
+	elif isinstance(credentials, ResourceOwnerCredentials):
+		key = f'{credentials.client_id};{credentials.username};{credentials.scopes}'
+	else:
+		raise TypeError(f'Unkonwn credentials type {credentials.__class__}')
+
+	if token is not None:
+		key += f';{token}'
+
+	return key
+
 
 class ClientCredentialsAccessTokenProvider:
 
@@ -21,22 +35,26 @@ class ClientCredentialsAccessTokenProvider:
 
 	def get_token(self) -> KeycloakToken:
 
-		token = self.token_cache.get(self.credentials.key())
+		key = cache_key(self.credentials)
+
+		token = self.token_cache.get(key)
 
 		if token and not token.has_expired(self.datetime_provider()):
 			return token
 
 		token = self.get_new_token()
 
-		self.token_cache.add(self.credentials.key(), token, timeout=token.expires_in.seconds)
+		self.token_cache.add(key, token, timeout=token.expires_in.seconds)
 
 		return token
 
 	def get_new_token(self) -> KeycloakToken:
 
+		key = cache_key(self.credentials)
+
 		token = self.keycloak.get_token(self.credentials)
 
-		self.token_cache.add(self.credentials.key(), token, timeout=token.expires_in.seconds)
+		self.token_cache.add(key, token, timeout=token.expires_in.seconds)
 
 		return token
 
@@ -52,22 +70,26 @@ class AccessTokenExchanger:
 
 	def exchange_token(self, subject_token: str) -> KeycloakToken:
 
-		token = self.exchanged_token_cache.get(self.credentials.key(subject_token))
+		key = cache_key(self.credentials, subject_token)
+
+		token = self.exchanged_token_cache.get(key)
 
 		if token and not token.has_expired(self.datetime_provider()):
 			return token
 
 		token = self.exchange_new_token(subject_token)
 
-		self.exchanged_token_cache.add(self.credentials.key(subject_token), token, timeout=token.expires_in.seconds)
+		self.exchanged_token_cache.add(key, token, timeout=token.expires_in.seconds)
 
 		return token
 
 	def exchange_new_token(self, subject_token: str) -> KeycloakToken:
 
+		key = cache_key(self.credentials, subject_token)
+
 		token = self.keycloak.get_token(self.credentials, subject_token)
 
-		self.exchanged_token_cache.add(self.credentials.key(subject_token), token, timeout=token.expires_in.seconds)
+		self.exchanged_token_cache.add(key, token, timeout=token.expires_in.seconds)
 
 		return token
 

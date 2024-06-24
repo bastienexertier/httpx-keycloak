@@ -46,9 +46,6 @@ class ClientCredentials:
 
 	grant_type = 'client_credentials'
 
-	def key(self, other: Optional[str]=None) -> str:
-		return f'{self.client_id};{self.scopes};{other}'
-
 	def with_scopes(self, scopes: Scopes):
 		""" Returns a copy of the credentials with the given scopes """
 		return self.__class__(self.client_id, self.client_secret, scopes)
@@ -77,9 +74,6 @@ class ResourceOwnerCredentials:
 
 	client_id: str
 	scopes: Scopes = Scopes()
-
-	def key(self, other: Optional[str]=None) -> str:
-		return f'{self.client_id};{self.username};{self.scopes};{other}'
 
 	def with_scopes(self, scopes: Scopes):
 		""" Returns a copy of the credentials with the given scopes """
