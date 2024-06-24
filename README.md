@@ -109,3 +109,16 @@ api_client._transport = TokenExchangeAuthenticationTransport( # <<<
 api_client.get('/users', headers={'Authorization': 'token_to_be_exchanged'})
 
 ```
+
+## Cache and Automatic retry
+
+Access token are cached. Exchanged tokens too.  
+If the AuthenticationTransport see that the response is 401 (meaning the token wasn't valid anymore), it will:
+- Try to refresh the token with the refresh_token if supported.
+- Request a new token.
+- Re-send the request.
+
+
+## But '\_' means its protected?
+
+Yes. But I haven't found an easier way to let `httpx` build the base transport but still be able to wrap it with custom behavior.
