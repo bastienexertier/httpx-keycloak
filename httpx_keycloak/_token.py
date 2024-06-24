@@ -19,6 +19,10 @@ class KeycloakToken:
 
 	scopes: Scopes
 
+	def expiration(self, now: datetime.datetime) -> int:
+		""" Returns the nmber of second left before both the access_token and refres_token expires. """
+		return (self.emitted_at + max(self.expires_in, self.refresh_token_expires_in) - now).seconds
+
 	def has_expired(self, now: datetime.datetime) -> bool:
 		""" Returns True if the token has expired at the given time. """
 		return self.emitted_at + self.expires_in <= now

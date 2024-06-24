@@ -24,7 +24,7 @@ class KeycloakClient:
 
 	def __init__(self, http: httpx.Client, datetime_provider: Optional[DatetimeProvider]=None):
 		self.http = http
-		self.datetime_provider = datetime_provider or datetime.datetime.now
+		self.now = datetime_provider or datetime.datetime.now
 		self.openid_config = self.__get_openid_config()
 
 
@@ -63,4 +63,4 @@ class KeycloakClient:
 		if response.is_error:
 			raise KeycloakError(f"[{response.status_code}] {data['error']} - {data['error_description']}")
 
-		return KeycloakToken.from_dict(data, emitted_at=self.datetime_provider() - response.elapsed)
+		return KeycloakToken.from_dict(data, emitted_at=self.now() - response.elapsed)
