@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 import httpx
 
-from ._interfaces import AccessTokenProvider, AccessTokenExchanger, KeycloakError
+from ._interfaces import TokenProvider, TokenExchanger, KeycloakError
 from ._token import KeycloakToken
 
 
@@ -20,7 +20,7 @@ class ClientAuthenticationTransport(httpx.BaseTransport):
 	def __init__(
 		self,
 		transport: httpx.BaseTransport,
-		token_provider: AccessTokenProvider,
+		token_provider: TokenProvider,
 		settings: Optional[AuthenticationTransportSettings]=None
 	):
 		self.transport = transport
@@ -53,7 +53,7 @@ class TokenExchangeAuthenticationTransport(httpx.BaseTransport):
 	def __init__(
 		self,
 		transport: httpx.BaseTransport,
-		token_exchanger: AccessTokenExchanger,
+		token_exchanger: TokenExchanger,
 		settings: Optional[AuthenticationTransportSettings]=None
 	):
 		self.transport = transport

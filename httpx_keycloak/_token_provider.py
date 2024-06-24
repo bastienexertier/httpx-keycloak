@@ -5,7 +5,7 @@ from typing import Optional, Iterator
 from cachelib.simple import SimpleCache
 
 from ._keycloak_client import KeycloakClient
-from ._interfaces import DatetimeProvider, AccessTokenProvider, Credentials, SupportsExhange, SupportsRefresh
+from ._interfaces import DatetimeProvider, TokenProvider, Credentials, SupportsExhange, SupportsRefresh
 from ._model import ClientCredentials, ResourceOwnerCredentials
 from ._token import KeycloakToken
 
@@ -25,7 +25,7 @@ def cache_key(credentials: Credentials, token: Optional[str]=None) -> str:
 	return key
 
 
-class ClientCredentialsAccessTokenProvider:
+class ClientCredentialsTokenProvider:
 
 	token_cache = SimpleCache(threshold=100)
 
@@ -60,7 +60,7 @@ class ClientCredentialsAccessTokenProvider:
 		yield token
 
 
-class AccessTokenExchanger:
+class TokenExchanger:
 
 	exchanged_token_cache = SimpleCache(threshold=100)
 
@@ -86,28 +86,28 @@ class AccessTokenExchanger:
 
 
 
-class AccessTokenProviderFactory:
+class TokenProviderFactory:
 
 	def __init__(self, keycloak_client: KeycloakClient, datetime_provider: Optional[DatetimeProvider]=None):
 		self.keycloak = keycloak_client
 		self.now = datetime_provider or datetime.datetime.now
 
-	def client_credentials(self, credentials: Credentials) -> AccessTokenProvider:
-		return ClientCredentialsAccessTokenProvider(
+	def client_credentials(self, credentials: Credentials) -> TokenProvider:
+		return ClientCredentialsTokenProvider(
 			self.keycloak,
 			credentials,
 			self.now,
 		)
 
-	def resource_owner(self, credentials: SupportsRefresh) -> AccessTokenProvider:
-		return ClientCredentialsAccessTokenProvider(
+	def resource_owner(self, credentials: SupportsRefresh) -> TokenProvider:
+		return ClientCredentialsTokenProvider(
 			self.keycloak,
 			credentials,
 			self.now,
 		)
 
-	def token_exchange(self, credentials: SupportsExhange) -> AccessTokenExchanger:
-		return AccessTokenExchanger(
+	def token_exchange(self, credentials: SupportsExhange) -> TokenExchanger:
+		return TokenExchanger(
 			self.keycloak,
 			credentials,
 			self.now,

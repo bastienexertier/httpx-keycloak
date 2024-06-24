@@ -1,6 +1,6 @@
 # HTTPX-Keycloak
 
-My implementation of an httpx.BaseTransport that negotiates an access token and puts it in the request headers.
+My implementation of an `httpx.BaseTransport` that negotiates an access token and puts it in the request headers before sending it.
 
 # Installation
 
@@ -8,7 +8,7 @@ You can't install it yet :(
 
 # Usage
 
-The library only needs to be setup. Once it is done, the authentication will happen behind the usage of httpx.Client, meaning you don't need to change existing code.
+The library only needs to be setup. Once it is done, the authentication will happen behind the usage of `httpx.Client`, meaning you shouldn't need to change existing code.
 
 ## Client Credentials
 
@@ -16,7 +16,7 @@ The library only needs to be setup. Once it is done, the authentication will hap
 import httpx
 from httpx_keycloak import (
 	KeycloakClient,
-	AccessTokenProviderFactory,
+	TokenProviderFactory,
 	ClientAuthenticationTransport,
 	ClientCredentials
 )
@@ -26,7 +26,7 @@ api_client = httpx.Client(base_url='http://example')
 
 # ============== ADD THIS ==============
 
-access_token_providers = AccessTokenProviderFactory(
+token_providers = TokenProviderFactory(
 	KeycloakClient(httpx.Client(base_url='http://localhost:8080/realms/master'))
 )
 
@@ -34,7 +34,7 @@ credentials = ClientCredentials(CLIENT_ID, CLIENT_SECRET, ('scope-1', 'scope-2')
 
 api_client._transport = ClientAuthenticationTransport(
 	api_client._transport,
-	access_token_providers.client_credentials(credentials)
+	token_providers.client_credentials(credentials)
 )
 
 # ===== JUST THIS. NOW USE A USUAL =====
@@ -49,7 +49,7 @@ api_client.get('/users')
 import httpx
 from httpx_keycloak import (
 	KeycloakClient,
-	AccessTokenProviderFactory,
+	TokenProviderFactory,
 	ClientAuthenticationTransport,
 	ClientCredentials
 )
@@ -59,7 +59,7 @@ api_client = httpx.Client(base_url='http://example')
 
 # ============== ADD THIS ==============
 
-access_token_providers = AccessTokenProviderFactory(
+token_providers = TokenProviderFactory(
 	KeycloakClient(httpx.Client(base_url='http://localhost:8080/realms/master'))
 )
 
@@ -67,7 +67,7 @@ credentials = ResourceOwnerCredentials(USERNAME, PASSWORD, CLIENT_ID, ('scope-1'
 
 api_client._transport = ClientAuthenticationTransport(
 	api_client._transport,
-	access_token_providers.resource_owner(credentials) # <<<
+	token_providers.resource_owner(credentials) # <<<
 )
 
 # ===== JUST THIS. NOW USE A USUAL =====
@@ -82,7 +82,7 @@ api_client.get('/users')
 import httpx
 from httpx_keycloak import (
 	KeycloakClient,
-	AccessTokenProviderFactory,
+	TokenProviderFactory,
 	TokenExchangeAuthenticationTransport,
 	ClientCredentials
 )
@@ -91,7 +91,7 @@ api_client = httpx.Client(base_url='http://example')
 
 # ============== ADD THIS ==============
 
-access_token_providers = AccessTokenProviderFactory(
+token_providers = TokenProviderFactory(
 	KeycloakClient(httpx.Client(base_url='http://localhost:8080/realms/master'))
 )
 
@@ -99,7 +99,7 @@ credentials = ClientCredentials(CLIENT_ID, CLIENT_SECRET, ('scope-1', 'scope-2')
 
 api_client._transport = TokenExchangeAuthenticationTransport( # <<<
 	api_client._transport,
-	access_token_providers.token_exchange(credentials) # <<<
+	token_providers.token_exchange(credentials) # <<<
 )
 
 # ===== JUST THIS. NOW USE A USUAL =====
@@ -113,6 +113,7 @@ api_client.get('/users', headers={'Authorization': 'token_to_be_exchanged'})
 ## Cache and Automatic retry
 
 Access token are cached. Exchanged tokens too.  
+
 If the AuthenticationTransport see that the response is 401 (meaning the token wasn't valid anymore), it will:
 - Try to refresh the token with the refresh_token if supported.
 - Request a new token.

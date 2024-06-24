@@ -42,13 +42,13 @@ class SupportsRefresh(Credentials, Protocol):
 		...
 
 
-class AccessTokenProvider(Protocol):
+class TokenProvider(Protocol):
 
 	def get_token(self) -> Iterator[KeycloakToken]:
 		...
 
 
-class AccessTokenExchanger(Protocol):
+class TokenExchanger(Protocol):
 
 	def exchange_token(self, subject_token: str) -> Iterator[KeycloakToken]:
 		...
