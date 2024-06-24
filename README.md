@@ -10,7 +10,7 @@ You can't install it yet :(
 
 The library only needs to be setup. Once it is done, the authentication will happen behind the usage of `httpx.Client`, meaning you shouldn't need to change existing code.
 
-## Client Credentials
+## Imports
 
 ```python
 import httpx
@@ -18,9 +18,14 @@ from httpx_keycloak import (
 	KeycloakClient,
 	TokenProviderFactory,
 	ClientAuthenticationTransport,
-	ClientCredentials
+	ClientCredentials,
+	ResourceOwnerCredentials
 )
+```
 
+## Client Credentials
+
+```python
 
 api_client = httpx.Client(base_url='http://example')
 
@@ -46,14 +51,6 @@ api_client.get('/users')
 ## Resource Owner
 
 ```python
-import httpx
-from httpx_keycloak import (
-	KeycloakClient,
-	TokenProviderFactory,
-	ClientAuthenticationTransport,
-	ClientCredentials
-)
-
 
 api_client = httpx.Client(base_url='http://example')
 
@@ -79,13 +76,6 @@ api_client.get('/users')
 ## Token Exchange
 
 ```python
-import httpx
-from httpx_keycloak import (
-	KeycloakClient,
-	TokenProviderFactory,
-	TokenExchangeAuthenticationTransport,
-	ClientCredentials
-)
 
 api_client = httpx.Client(base_url='http://example')
 
