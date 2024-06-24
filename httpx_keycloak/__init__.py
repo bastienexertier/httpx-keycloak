@@ -19,5 +19,7 @@ from ._model import (
 	ClientCredentials,
 	ResourceOwnerCredentials,
 	Scopes,
+)
+from ._token import (
 	KeycloakToken
 )

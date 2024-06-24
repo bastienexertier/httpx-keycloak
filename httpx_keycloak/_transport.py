@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import httpx
 
 from ._interfaces import AccessTokenProvider, AccessTokenExchanger, KeycloakError
-from ._model import KeycloakToken
+from ._token import KeycloakToken
 
 
 @dataclass(frozen=True)

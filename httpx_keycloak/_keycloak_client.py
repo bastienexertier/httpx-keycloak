@@ -4,8 +4,8 @@ from typing import TypedDict, Optional
 
 import httpx
 
-from ._interfaces import DatetimeProvider, KeycloakError, Credentials
-from ._model import KeycloakToken
+from ._interfaces import DatetimeProvider, KeycloakError, TokenRequest
+from ._token import KeycloakToken
 
 
 class OpenIDConfiguration(TypedDict):
@@ -35,7 +35,11 @@ class KeycloakClient:
 		return response.json()
 
 
-	def get_token(self, credentials: Credentials, access_token: Optional[str]=None) -> KeycloakToken:
+	def supports_grant(self, grant: str) -> bool:
+		return grant in self.openid_config['token_endpoint_auth_methods_supported']
+
+
+	def get_token(self, credentials: TokenRequest) -> KeycloakToken:
 
 		auth_methods_supported = self.openid_config['token_endpoint_auth_methods_supported']
 
@@ -48,17 +52,11 @@ class KeycloakClient:
 		else:
 			raise KeycloakError('No token auth method supported')
 
-		if access_token is not None:
-			request_body |= {
-				"grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
-				"subject_token": access_token,
-				"subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
-			}
-
-		if auth:
-			response = self.http.post(self.openid_config['token_endpoint'], data=request_body, auth=auth)
-		else:
-			response = self.http.post(self.openid_config['token_endpoint'], data=request_body)
+		response = self.http.post(
+			self.openid_config['token_endpoint'],
+			data=request_body,
+			auth=auth or httpx.USE_CLIENT_DEFAULT
+		)
 
 		data = response.json()
 

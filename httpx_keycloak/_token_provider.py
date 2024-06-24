@@ -6,7 +6,8 @@ from cachelib.simple import SimpleCache
 
 from ._keycloak_client import KeycloakClient
 from ._interfaces import DatetimeProvider, AccessTokenProvider, Credentials
-from ._model import ClientCredentials, ResourceOwnerCredentials, KeycloakToken
+from ._model import ClientCredentials, ResourceOwnerCredentials
+from ._token import KeycloakToken
 
 
 def cache_key(credentials: Credentials, token: Optional[str]=None) -> str:
@@ -52,7 +53,7 @@ class ClientCredentialsAccessTokenProvider:
 
 		key = cache_key(self.credentials)
 
-		token = self.keycloak.get_token(self.credentials)
+		token = self.keycloak.get_token(self.credentials.request())
 
 		self.token_cache.add(key, token, timeout=token.expires_in.seconds)
 
@@ -87,7 +88,7 @@ class AccessTokenExchanger:
 
 		key = cache_key(self.credentials, subject_token)
 
-		token = self.keycloak.get_token(self.credentials, subject_token)
+		token = self.keycloak.get_token(self.credentials.exchange(subject_token))
 
 		self.exchanged_token_cache.add(key, token, timeout=token.expires_in.seconds)
 
