@@ -39,16 +39,20 @@ class KeycloakClient:
 	def supports_grant(self, grant: GrantType) -> bool:
 		return grant in self.openid_config['grant_types_supported']
 
-	def get_token(self, credentials: TokenRequest) -> KeycloakToken:
+	def get_token(self, token_request: TokenRequest) -> KeycloakToken:
+		"""
+		Requests a new token from a TokenRequest.
+		A TokenRequest is an object that can provide a Authentication header and request body.
+		"""
 
 		auth_methods_supported = self.openid_config['token_endpoint_auth_methods_supported']
 
 		if 'client_secret_post' in auth_methods_supported:
-			request_body = credentials.request_body()
+			request_body = token_request.request_body()
 			auth = None
 		elif 'client_secret_basic' in auth_methods_supported:
-			request_body = credentials.request_body(include_credentials=False)
-			auth = credentials.to_basic_auth()
+			request_body = token_request.request_body(include_credentials=False)
+			auth = token_request.to_basic_auth()
 		else:
 			raise KeycloakError('No token auth method supported')
 
