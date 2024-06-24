@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import httpx
 
 from ._interfaces import AccessTokenProvider, AccessTokenExchanger, KeycloakError
+from ._model import KeycloakToken
 
 
 @dataclass(frozen=True)
@@ -31,14 +32,14 @@ class ClientAuthenticationTransport(httpx.BaseTransport):
 		if 'Authorization' in request.headers and not self.settings.override_existing_auth_header:
 			return self.transport.handle_request(request)
 
-		request.headers['Authorization'] = self.token_provider.get_token().to_bearer_string()
+		set_auth_header(request, self.token_provider.get_token())
 
 		response = self.transport.handle_request(request)
 
 		if response.status_code != 401 or not self.settings.retry_on_401:
 			return response
 
-		request.headers['Authorization'] = self.token_provider.get_new_token().to_bearer_string()
+		set_auth_header(request, self.token_provider.get_new_token())
 
 		return self.transport.handle_request(request)
 
@@ -64,13 +65,17 @@ class TokenExchangeAuthenticationTransport(httpx.BaseTransport):
 
 		subject_token = auth_header.removeprefix('Bearer ')
 
-		request.headers['Authorization'] = self.token_exchanger.exchange_token(subject_token).to_bearer_string()
+		set_auth_header(request, self.token_exchanger.exchange_token(subject_token))
 
 		response = self.transport.handle_request(request)
 
 		if response.status_code != 401 or not self.settings.retry_on_401:
 			return response
 
-		request.headers['Authorization'] = self.token_exchanger.exchange_new_token(subject_token).to_bearer_string()
+		set_auth_header(request, self.token_exchanger.exchange_new_token(subject_token))
 
 		return self.transport.handle_request(request)
+
+
+def set_auth_header(request: httpx.Request, token: KeycloakToken):
+	request.headers['Authorization'] = token.to_bearer_string()
