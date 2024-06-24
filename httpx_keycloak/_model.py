@@ -132,8 +132,6 @@ class TokenExchangeTokenRequest:
 
 		return data
 
-
-
 @dataclass
 class RefreshTokenRequest:
 
@@ -155,8 +153,5 @@ class RefreshTokenRequest:
 
 		if include_credentials:
 			data["client_id"] = self.credentials.client_id
-
-		if self.credentials.scopes:
-			data["scope"] = str.join(" ", self.credentials.scopes)
 
 		return data

@@ -38,7 +38,7 @@ class SupportsExhange(Credentials, Protocol):
 @runtime_checkable
 class SupportsRefresh(Credentials, Protocol):
 
-	def refresh(self, token: KeycloakToken) -> TokenRequest:
+	def refresh(self, refresh_token: str) -> TokenRequest:
 		...
 
 
