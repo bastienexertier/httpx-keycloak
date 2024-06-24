@@ -1,6 +1,6 @@
 
 import datetime
-from typing import Callable, Protocol
+from typing import Callable, Protocol, Iterator, runtime_checkable
 
 import httpx
 
@@ -16,11 +16,12 @@ DatetimeProvider = Callable[[], datetime.datetime]
 
 class TokenRequest(Protocol):
 
-	def request_body(self, *, with_credentials:bool=True) -> dict[str, str]:
+	def request_body(self, *, include_credentials:bool=True) -> dict[str, str]:
 		...
 
 	def to_basic_auth(self) -> httpx.BasicAuth:
 		...
+
 
 
 class Credentials(Protocol):
@@ -28,26 +29,26 @@ class Credentials(Protocol):
 	def request(self) -> TokenRequest:
 		...
 
-	def refresh(self, token: KeycloakToken) -> TokenRequest:
-		...
+@runtime_checkable
+class SupportsExhange(Credentials, Protocol):
 
 	def exchange(self, subject_token: str) -> TokenRequest:
+		...
+
+@runtime_checkable
+class SupportsRefresh(Credentials, Protocol):
+
+	def refresh(self, token: KeycloakToken) -> TokenRequest:
 		...
 
 
 class AccessTokenProvider(Protocol):
 
-	def get_token(self) -> KeycloakToken:
-		...
-
-	def get_new_token(self) -> KeycloakToken:
+	def get_token(self) -> Iterator[KeycloakToken]:
 		...
 
 
 class AccessTokenExchanger(Protocol):
 
-	def exchange_token(self, subject_token: str) -> KeycloakToken:
-		...
-
-	def exchange_new_token(self, subject_token: str) -> KeycloakToken:
+	def exchange_token(self, subject_token: str) -> Iterator[KeycloakToken]:
 		...

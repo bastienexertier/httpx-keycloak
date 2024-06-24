@@ -1,11 +1,11 @@
 
 import datetime
-from typing import Optional
+from typing import Optional, Iterator
 
 from cachelib.simple import SimpleCache
 
 from ._keycloak_client import KeycloakClient
-from ._interfaces import DatetimeProvider, AccessTokenProvider, Credentials
+from ._interfaces import DatetimeProvider, AccessTokenProvider, Credentials, SupportsExhange, SupportsRefresh
 from ._model import ClientCredentials, ResourceOwnerCredentials
 from ._token import KeycloakToken
 
@@ -34,65 +34,56 @@ class ClientCredentialsAccessTokenProvider:
 		self.keycloak = keycloak_client
 		self.credentials = credentials
 
-	def get_token(self) -> KeycloakToken:
+	def get_token(self) -> Iterator[KeycloakToken]:
 
 		key = cache_key(self.credentials)
 
 		token = self.token_cache.get(key)
 
-		if token and not token.has_expired(self.datetime_provider()):
-			return token
+		if token:
+			if not token.has_expired(self.datetime_provider()):
+				yield token
 
-		token = self.get_new_token()
-
-		self.token_cache.add(key, token, timeout=token.expires_in.seconds)
-
-		return token
-
-	def get_new_token(self) -> KeycloakToken:
-
-		key = cache_key(self.credentials)
+			if (
+				self.keycloak.supports_grant('refresh_token')
+				and isinstance(self.credentials, SupportsRefresh)
+				and token.refresh_token
+				and not token.refresh_token_has_expired(self.datetime_provider())
+			):
+				token = self.keycloak.get_token(self.credentials.refresh(token.refresh_token))
+				self.token_cache.set(key, token, timeout=token.expires_in.seconds)
+				yield token
 
 		token = self.keycloak.get_token(self.credentials.request())
+		self.token_cache.set(key, token, timeout=token.expires_in.seconds)
 
-		self.token_cache.add(key, token, timeout=token.expires_in.seconds)
-
-		return token
+		yield token
 
 
 class AccessTokenExchanger:
 
 	exchanged_token_cache = SimpleCache(threshold=100)
 
-	def __init__(self, keycloak_client: KeycloakClient, credentials: Credentials, datetime_provider: DatetimeProvider):
+	def __init__(self, keycloak_client: KeycloakClient, credentials: SupportsExhange, datetime_provider: DatetimeProvider):
 		self.keycloak = keycloak_client
 		self.credentials = credentials
 		self.datetime_provider = datetime_provider
 
-	def exchange_token(self, subject_token: str) -> KeycloakToken:
+	def exchange_token(self, subject_token: str) -> Iterator[KeycloakToken]:
 
 		key = cache_key(self.credentials, subject_token)
 
 		token = self.exchanged_token_cache.get(key)
 
-		if token and not token.has_expired(self.datetime_provider()):
-			return token
-
-		token = self.exchange_new_token(subject_token)
-
-		self.exchanged_token_cache.add(key, token, timeout=token.expires_in.seconds)
-
-		return token
-
-	def exchange_new_token(self, subject_token: str) -> KeycloakToken:
-
-		key = cache_key(self.credentials, subject_token)
+		if token:
+			if not token.has_expired(self.datetime_provider()):
+				yield token
 
 		token = self.keycloak.get_token(self.credentials.exchange(subject_token))
+		self.exchanged_token_cache.set(key, token, timeout=token.expires_in.seconds)
 
-		self.exchanged_token_cache.add(key, token, timeout=token.expires_in.seconds)
+		yield token
 
-		return token
 
 
 class AccessTokenProviderFactory:
@@ -101,21 +92,21 @@ class AccessTokenProviderFactory:
 		self.keycloak = keycloak_client
 		self.datetime_provider = datetime_provider or datetime.datetime.now
 
-	def client_credentials(self, credentials: ClientCredentials) -> AccessTokenProvider:
+	def client_credentials(self, credentials: Credentials) -> AccessTokenProvider:
 		return ClientCredentialsAccessTokenProvider(
 			self.keycloak,
 			credentials,
 			self.datetime_provider,
 		)
 
-	def resource_owner(self, credentials: ResourceOwnerCredentials) -> AccessTokenProvider:
+	def resource_owner(self, credentials: SupportsRefresh) -> AccessTokenProvider:
 		return ClientCredentialsAccessTokenProvider(
 			self.keycloak,
 			credentials,
 			self.datetime_provider,
 		)
 
-	def token_exchange(self, credentials: ClientCredentials) -> AccessTokenExchanger:
+	def token_exchange(self, credentials: SupportsExhange) -> AccessTokenExchanger:
 		return AccessTokenExchanger(
 			self.keycloak,
 			credentials,

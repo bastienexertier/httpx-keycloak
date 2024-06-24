@@ -6,6 +6,7 @@ import httpx
 
 from ._interfaces import DatetimeProvider, KeycloakError, TokenRequest
 from ._token import KeycloakToken
+from ._model import GrantType
 
 
 class OpenIDConfiguration(TypedDict):
@@ -16,6 +17,7 @@ class OpenIDConfiguration(TypedDict):
 	userinfo_endpoint: str
 	end_session_endpoint: str
 	token_endpoint_auth_methods_supported: list[str]
+	grant_types_supported: list[str]
 
 
 class KeycloakClient:
@@ -34,10 +36,8 @@ class KeycloakClient:
 
 		return response.json()
 
-
-	def supports_grant(self, grant: str) -> bool:
-		return grant in self.openid_config['token_endpoint_auth_methods_supported']
-
+	def supports_grant(self, grant: GrantType) -> bool:
+		return grant in self.openid_config['grant_types_supported']
 
 	def get_token(self, credentials: TokenRequest) -> KeycloakToken:
 
@@ -47,7 +47,7 @@ class KeycloakClient:
 			request_body = credentials.request_body()
 			auth = None
 		elif 'client_secret_basic' in auth_methods_supported:
-			request_body = credentials.request_body(with_credentials=False)
+			request_body = credentials.request_body(include_credentials=False)
 			auth = credentials.to_basic_auth()
 		else:
 			raise KeycloakError('No token auth method supported')

@@ -35,9 +35,6 @@ class ClientCredentials:
 	def request(self) -> TokenRequest:
 		return ClientCredentialsTokenRequest(self)
 
-	def refresh(self, token: KeycloakToken) -> TokenRequest:
-		return RefreshTokenRequest(self, token)
-
 	def exchange(self, subject_token: str) -> TokenRequest:
 		return TokenExchangeTokenRequest(self, subject_token)
 
@@ -58,6 +55,11 @@ class ResourceOwnerCredentials:
 	def request(self) -> TokenRequest:
 		return ResourceOwnerTokenRequest(self)
 
+	def refresh(self, refresh_token: str) -> TokenRequest:
+		return RefreshTokenRequest(self, refresh_token)
+
+
+
 @dataclass
 class ClientCredentialsTokenRequest:
 
@@ -67,11 +69,11 @@ class ClientCredentialsTokenRequest:
 	def to_basic_auth(self) -> httpx.BasicAuth:
 		return httpx.BasicAuth(self.credentials.client_id, self.credentials.client_secret)
 
-	def request_body(self, *, with_credentials:bool=True) -> dict[str, str]:
+	def request_body(self, *, include_credentials:bool=True) -> dict[str, str]:
 
 		data: dict[str, str] = {"grant_type": self.grant_type}
 
-		if with_credentials:
+		if include_credentials:
 			data["client_id"] = self.credentials.client_id
 			data["client_secret"] = self.credentials.client_secret
 
@@ -89,7 +91,7 @@ class ResourceOwnerTokenRequest:
 	def to_basic_auth(self) -> httpx.BasicAuth:
 		return httpx.BasicAuth(self.credentials.client_id, '')
 
-	def request_body(self, *, with_credentials:bool=True) -> dict[str, str]:
+	def request_body(self, *, include_credentials:bool=True) -> dict[str, str]:
 
 		data = {
 				"username": self.credentials.username,
@@ -97,7 +99,7 @@ class ResourceOwnerTokenRequest:
 				"grant_type": "password",
 			}
 
-		if with_credentials:
+		if include_credentials:
 			data["client_id"] = self.credentials.client_id
 
 		if self.credentials.scopes:
@@ -115,7 +117,7 @@ class TokenExchangeTokenRequest:
 	def to_basic_auth(self) -> httpx.BasicAuth:
 		return httpx.BasicAuth(self.credentials.client_id, self.credentials.client_secret)
 
-	def request_body(self, *, with_credentials:bool=True) -> dict[str, str]:
+	def request_body(self, *, include_credentials:bool=True) -> dict[str, str]:
 
 		data: dict[str, str] = {
 			"grant_type": self.grant_type,
@@ -123,7 +125,7 @@ class TokenExchangeTokenRequest:
 			"subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
 		}
 
-		if with_credentials:
+		if include_credentials:
 			data["client_id"] = self.credentials.client_id
 			data["client_secret"] = self.credentials.client_secret
 
@@ -137,25 +139,24 @@ class TokenExchangeTokenRequest:
 @dataclass
 class RefreshTokenRequest:
 
-	credentials: ClientCredentials
-	token: KeycloakToken
+	credentials: ResourceOwnerCredentials
+	refresh_token: str
 	grant_type: GrantType = 'refresh_token'
 
 	def to_basic_auth(self) -> httpx.BasicAuth:
-		return httpx.BasicAuth(self.credentials.client_id, self.credentials.client_secret)
+		return httpx.BasicAuth(self.credentials.client_id, '')
 
-	def request_body(self, *, with_credentials:bool=True) -> dict[str, str]:
-
-		assert self.token.refresh_token
+	def request_body(self, *, include_credentials:bool=True) -> dict[str, str]:
 
 		data: dict[str, str] = {
+			"username": self.credentials.username,
+			"password": self.credentials.password,
 			'grant_type': self.grant_type,
-			'refresh_token': self.token.refresh_token
+			'refresh_token': self.refresh_token
 		}
 
-		if with_credentials:
+		if include_credentials:
 			data["client_id"] = self.credentials.client_id
-			data["client_secret"] = self.credentials.client_secret
 
 		if self.credentials.scopes:
 			data["scope"] = str.join(' ', self.credentials.scopes)

@@ -23,6 +23,10 @@ class KeycloakToken:
 		""" Returns True if the token has expired at the given time. """
 		return self.emitted_at + self.expires_in <= now
 
+	def refresh_token_has_expired(self, now: datetime.datetime) -> bool:
+		""" Returns True if the refresh token has expired at the given time. """
+		return self.emitted_at + self.refresh_token_expires_in <= now
+
 	def to_bearer_string(self) -> str:
 		""" Returns the string to put in the Authorization header. """
 		return f'Bearer {self.access_token}'
@@ -35,6 +39,6 @@ class KeycloakToken:
 			access_token=data['access_token'],
 			expires_in=datetime.timedelta(seconds=int(data['expires_in'])),
 			refresh_token=data.get('refresh_token'),
-			refresh_token_expires_in=datetime.timedelta(seconds=int(data.get('refresh_token_expires_in', 0))),
+			refresh_token_expires_in=datetime.timedelta(seconds=int(data.get('refresh_expires_in', 0))),
 			scopes=Scopes(data['scope'].split(' '))
 		)

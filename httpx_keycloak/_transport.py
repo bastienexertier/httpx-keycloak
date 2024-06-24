@@ -12,7 +12,7 @@ from ._token import KeycloakToken
 class AuthenticationTransportSettings:
 
 	retry_on_401: bool = True
-	override_existing_auth_header: bool = False
+	override_existing_auth_header: bool = True
 
 
 class ClientAuthenticationTransport(httpx.BaseTransport):
@@ -32,15 +32,19 @@ class ClientAuthenticationTransport(httpx.BaseTransport):
 		if 'Authorization' in request.headers and not self.settings.override_existing_auth_header:
 			return self.transport.handle_request(request)
 
-		set_auth_header(request, self.token_provider.get_token())
+		response = None
+		for token in self.token_provider.get_token():
 
-		response = self.transport.handle_request(request)
+			set_auth_header(request, token)
 
-		if response.status_code != 401 or not self.settings.retry_on_401:
+			response = self.transport.handle_request(request)
+
+			if response.status_code != 401 or not self.settings.retry_on_401:
+				return response
+
+		if response:
 			return response
-
-		set_auth_header(request, self.token_provider.get_new_token())
-
+		
 		return self.transport.handle_request(request)
 
 
@@ -65,15 +69,19 @@ class TokenExchangeAuthenticationTransport(httpx.BaseTransport):
 
 		subject_token = auth_header.removeprefix('Bearer ')
 
-		set_auth_header(request, self.token_exchanger.exchange_token(subject_token))
+		response = None
+		for token in self.token_exchanger.exchange_token(subject_token):
 
-		response = self.transport.handle_request(request)
+			set_auth_header(request, token)
 
-		if response.status_code != 401 or not self.settings.retry_on_401:
+			response = self.transport.handle_request(request)
+
+			if response.status_code != 401 or not self.settings.retry_on_401:
+				return response
+
+		if response:
 			return response
-
-		set_auth_header(request, self.token_exchanger.exchange_new_token(subject_token))
-
+		
 		return self.transport.handle_request(request)
 
 
