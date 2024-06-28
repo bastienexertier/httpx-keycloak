@@ -19,6 +19,14 @@ GrantType = Literal[
 	"urn:ietf:params:oauth:grant-type:device_code"
 ]
 
+AuthMethod = Literal[
+	"private_key_jwt",
+	"client_secret_basic",
+	"client_secret_post",
+	"tls_client_auth",
+	"client_secret_jwt"
+]
+
 
 @dataclass
 class ClientCredentials:
