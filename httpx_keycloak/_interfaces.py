@@ -49,13 +49,13 @@ class TokenRequest(Protocol):
 
 
 @runtime_checkable
-class SupportsExhange(Protocol):
+class SupportsExhange(TokenRequest, Protocol):
 
 	def exchange(self, subject_token: str) -> TokenRequest:
 		...
 
 @runtime_checkable
-class SupportsRefresh(Protocol):
+class SupportsRefresh(TokenRequest, Protocol):
 
 	def refresh(self, refresh_token: str) -> TokenRequest:
 		...

@@ -44,7 +44,7 @@ class ClientAuthenticationTransport(httpx.BaseTransport):
 
 		if response:
 			return response
-		
+
 		return self.transport.handle_request(request)
 
 
@@ -81,7 +81,7 @@ class TokenExchangeAuthenticationTransport(httpx.BaseTransport):
 
 		if response:
 			return response
-		
+
 		return self.transport.handle_request(request)
 
 

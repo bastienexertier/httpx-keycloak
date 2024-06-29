@@ -5,12 +5,12 @@ from typing import Optional, Union, Iterator
 from cachelib.simple import SimpleCache
 
 from ._keycloak_client import KeycloakClient
-from ._interfaces import DatetimeProvider, TokenProvider, SupportsExhange, SupportsRefresh
+from ._interfaces import DatetimeProvider, TokenRequest, TokenProvider, SupportsExhange, SupportsRefresh
 from ._model import ClientCredentials, ResourceOwnerCredentials
 from ._token import KeycloakToken
 
 
-def cache_key(credentials: Union[ClientCredentials, ResourceOwnerCredentials], token: Optional[str]=None) -> str:
+def cache_key(credentials: TokenRequest, token: Optional[str]=None) -> str:
 
 	if isinstance(credentials, ClientCredentials):
 		key = f'{credentials.client_id};{credentials.scopes}'
@@ -102,14 +102,14 @@ class TokenProviderFactory:
 		self.keycloak = keycloak_client
 		self.now = datetime_provider or datetime.datetime.now
 
-	def client_credentials(self, credentials: Union[ClientCredentials, ResourceOwnerCredentials]) -> TokenProvider:
+	def client_credentials(self, credentials: ClientCredentials) -> TokenProvider:
 		return ClientCredentialsTokenProvider(
 			self.keycloak,
 			credentials,
 			self.now,
 		)
 
-	def resource_owner(self, credentials: SupportsRefresh) -> TokenProvider:
+	def resource_owner(self, credentials: ResourceOwnerCredentials) -> TokenProvider:
 		return ClientCredentialsTokenProvider(
 			self.keycloak,
 			credentials,
