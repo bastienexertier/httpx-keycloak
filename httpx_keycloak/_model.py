@@ -1,19 +1,9 @@
 
-from typing import Literal, Optional, Union
+from typing import Optional, Union
 from dataclasses import dataclass
 
-from ._interfaces import TokenRequest, GrantType
+from ._interfaces import TokenRequest, GrantType, AuthMethods
 from ._token import Scopes
-
-
-
-AuthMethod = Literal[
-	"private_key_jwt",
-	"client_secret_basic",
-	"client_secret_post",
-	"tls_client_auth",
-	"client_secret_jwt"
-]
 
 
 @dataclass
@@ -22,6 +12,8 @@ class ClientCredentials:
 	client_id: str
 	client_secret: str
 	scopes: Scopes = Scopes()
+
+	auth_methods: AuthMethods = ('client_secret_basic', 'client_secret_post')
 
 	grant_type: GrantType = "client_credentials"
 
@@ -33,10 +25,10 @@ class ClientCredentials:
 		return self.__class__(self.client_id, self.client_secret, scopes)
 
 	def exchange(self, subject_token: str) -> TokenRequest:
-		return TokenExchangeTokenRequest(subject_token, self.client_id, self.client_secret, self.scopes)
+		return TokenExchangeTokenRequest(self.auth_methods, subject_token, self.client_id, self.client_secret, self.scopes)
 
 	def refresh(self, refresh_token: str) -> TokenRequest:
-		return ClientCredentialsRefreshTokenRequest(refresh_token, self.client_id, self.client_secret, self.scopes)
+		return ClientCredentialsRefreshTokenRequest(self.auth_methods, refresh_token, self.client_id, self.client_secret, self.scopes)
 
 @dataclass
 class ResourceOwnerCredentials:
@@ -46,6 +38,8 @@ class ResourceOwnerCredentials:
 
 	client_id: str
 	scopes: Scopes = Scopes()
+
+	auth_methods: AuthMethods = ('client_secret_basic', 'client_secret_post')
 
 	grant_type: GrantType = "password"
 
@@ -64,13 +58,15 @@ class ResourceOwnerCredentials:
 		return self.__class__(self.username, self.password, self.client_id, scopes)
 
 	def refresh(self, refresh_token: str) -> TokenRequest:
-		return ResourceOwnerCredentialsRefreshTokenRequest(refresh_token, self.username, self.password, self.client_id, self.scopes)
+		return ResourceOwnerCredentialsRefreshTokenRequest(self.auth_methods, refresh_token, self.username, self.password, self.client_id, self.scopes)
 
 
 Credentials = Union[ClientCredentials, ResourceOwnerCredentials]
 
 @dataclass
 class TokenExchangeTokenRequest:
+
+	auth_methods: AuthMethods
 
 	subject_token: str
 
@@ -89,6 +85,8 @@ class TokenExchangeTokenRequest:
 @dataclass
 class ClientCredentialsRefreshTokenRequest:
 
+	auth_methods: AuthMethods
+
 	refresh_token: str
 
 	client_id: str
@@ -104,6 +102,8 @@ class ClientCredentialsRefreshTokenRequest:
 
 @dataclass
 class ResourceOwnerCredentialsRefreshTokenRequest:
+
+	auth_methods: AuthMethods
 
 	refresh_token: str
 

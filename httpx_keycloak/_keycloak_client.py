@@ -60,13 +60,19 @@ class KeycloakClient:
 		request_body = {'grant_type': token_request.grant_type}
 		request_body |= token_request.to_request_body()
 
-		if 'client_secret_basic' in auth_methods_supported:
+		auth_method = None
+		for auth_method in token_request.auth_methods:
+
+			if auth_method not in auth_methods_supported:
+				continue
+
+		if auth_method == 'client_secret_basic':
 			auth = httpx.BasicAuth(token_request.client_id, token_request.client_secret or '')
-		elif 'client_secret_post' in auth_methods_supported:
+		elif auth_method == 'client_secret_post':
 			request_body['client_id'] = token_request.client_id
 			if token_request.client_secret:
 				request_body['client_secret'] = token_request.client_secret
-		elif 'client_secret_jwt' in auth_methods_supported:
+		elif auth_method == 'client_secret_jwt':
 			import time
 			import uuid
 			import jwt

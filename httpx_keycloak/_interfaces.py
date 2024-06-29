@@ -1,6 +1,6 @@
 
 import datetime
-from typing import Optional, Literal, Callable, Protocol, Iterator, runtime_checkable
+from typing import Union, Optional, Literal, Callable, Protocol, Iterator, runtime_checkable
 
 
 from ._token import KeycloakToken, Scopes
@@ -17,6 +17,16 @@ GrantType = Literal[
 	"urn:ietf:params:oauth:grant-type:device_code"
 ]
 
+AuthMethod = Literal[
+	"private_key_jwt",
+	"client_secret_basic",
+	"client_secret_post",
+	"tls_client_auth",
+	"client_secret_jwt"
+]
+
+AuthMethods = Union[AuthMethod, tuple[AuthMethod, ...]]
+
 
 class KeycloakError(Exception):
 	...
@@ -27,6 +37,8 @@ DatetimeProvider = Callable[[], datetime.datetime]
 
 
 class TokenRequest(Protocol):
+
+	auth_methods: AuthMethods
 
 	@property
 	def grant_type(self) -> GrantType:
