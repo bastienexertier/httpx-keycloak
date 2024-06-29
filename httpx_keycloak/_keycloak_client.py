@@ -55,6 +55,7 @@ class KeycloakClient:
 
 		auth_methods_supported = openid_config['token_endpoint_auth_methods_supported']
 
+		auth = None
 		request_body: dict[str, str]
 		request_body = {'grant_type': token_request.grant_type}
 		request_body |= token_request.to_request_body()
@@ -62,10 +63,25 @@ class KeycloakClient:
 		if 'client_secret_basic' in auth_methods_supported:
 			auth = httpx.BasicAuth(token_request.client_id, token_request.client_secret or '')
 		elif 'client_secret_post' in auth_methods_supported:
-			auth = None
 			request_body['client_id'] = token_request.client_id
 			if token_request.client_secret:
 				request_body['client_secret'] = token_request.client_secret
+		elif 'client_secret_jwt' in auth_methods_supported:
+			import time
+			import uuid
+			import jwt
+			epoch_time = int(time.time())
+			client_assertion = jwt.encode({
+				"iss": token_request.client_id,
+				"sub": token_request.client_id,
+				"aud": self.openid_config['token_endpoint'],
+				"jti": str(uuid.uuid4()),
+				"exp": epoch_time+1000
+			}, token_request.client_secret, algorithm="HS256")
+
+			request_body['client_assertion_type'] = 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer'
+			request_body['client_assertion'] = client_assertion
+
 
 		else:
 			raise KeycloakError('No token auth method supported')
