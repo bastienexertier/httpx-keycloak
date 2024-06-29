@@ -1,8 +1,7 @@
 
 import datetime
-from typing import Literal, Callable, Protocol, Iterator, runtime_checkable
+from typing import Optional, Literal, Callable, Protocol, Iterator, runtime_checkable
 
-import httpx
 
 from ._token import KeycloakToken
 
@@ -26,18 +25,21 @@ class KeycloakError(Exception):
 DatetimeProvider = Callable[[], datetime.datetime]
 
 
+
 class TokenRequest(Protocol):
 
 	@property
 	def grant_type(self) -> GrantType:
 		...
 
-	def to_basic_auth(self) -> tuple[str, str]:
+	def client_id(self) -> str:
+		...
+
+	def client_secret(self) -> Optional[str]:
 		...
 
 	def to_request_body(self) -> dict[str, str]:
 		...
-
 
 
 class Credentials(Protocol):

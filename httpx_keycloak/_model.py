@@ -1,5 +1,5 @@
 
-from typing import Literal, Union
+from typing import Literal, Optional, Union
 from dataclasses import dataclass
 
 from ._interfaces import TokenRequest, GrantType
@@ -75,6 +75,24 @@ class ResourceOwnerCredentials:
 
 Credentials = Union[ClientCredentials, ResourceOwnerCredentials]
 
+from typing import Protocol
+
+class TokenRequest(Protocol):
+
+	@property
+	def grant_type(self) -> GrantType:
+		...
+
+	def client_id(self) -> str:
+		...
+
+	def client_secret(self) -> Optional[str]:
+		...
+
+	def to_request_body(self) -> dict[str, str]:
+		...
+
+
 
 @dataclass
 class ClientCredentialsTokenRequest:
@@ -82,8 +100,11 @@ class ClientCredentialsTokenRequest:
 	credentials: ClientCredentials
 	grant_type: GrantType = "client_credentials"
 
-	def to_basic_auth(self) -> tuple[str, str]:
-		return self.credentials.credentials_as_tuple()
+	def client_id(self) -> str:
+		return self.credentials.client_id
+
+	def client_secret(self) -> Optional[str]:
+		return self.credentials.client_secret
 
 	def to_request_body(self) -> dict[str, str]:
 		return {}
@@ -94,8 +115,11 @@ class ResourceOwnerTokenRequest:
 	credentials: ResourceOwnerCredentials
 	grant_type: GrantType = "password"
 
-	def to_basic_auth(self) -> tuple[str, str]:
-		return self.credentials.credentials_as_tuple()
+	def client_id(self) -> str:
+		return self.credentials.client_id
+
+	def client_secret(self) -> Optional[str]:
+		return None
 
 	def to_request_body(self) -> dict[str, str]:
 		return {
@@ -110,8 +134,11 @@ class TokenExchangeTokenRequest:
 	subject_token: str
 	grant_type: GrantType = "urn:ietf:params:oauth:grant-type:token-exchange"
 
-	def to_basic_auth(self) -> tuple[str, str]:
-		return self.credentials.credentials_as_tuple()
+	def client_id(self) -> str:
+		return self.credentials.client_id
+
+	def client_secret(self) -> Optional[str]:
+		return self.credentials.client_secret
 
 	def to_request_body(self) -> dict[str, str]:
 		return {
@@ -126,8 +153,11 @@ class ClientCredentialsRefreshTokenRequest:
 	refresh_token: str
 	grant_type: GrantType = "refresh_token"
 
-	def to_basic_auth(self) -> tuple[str, str]:
-		return self.credentials.credentials_as_tuple()
+	def client_id(self) -> str:
+		return self.credentials.client_id
+
+	def client_secret(self) -> Optional[str]:
+		return self.credentials.client_secret
 
 	def to_request_body(self) -> dict[str, str]:
 		return {
@@ -141,8 +171,11 @@ class ResourceOwnerCredentialsRefreshTokenRequest:
 	refresh_token: str
 	grant_type: GrantType = "refresh_token"
 
-	def to_basic_auth(self) -> tuple[str, str]:
-		return self.credentials.credentials_as_tuple()
+	def client_id(self) -> str:
+		return self.credentials.client_id
+
+	def client_secret(self) -> Optional[str]:
+		return None
 
 	def to_request_body(self) -> dict[str, str]:
 		return {
