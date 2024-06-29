@@ -1,17 +1,16 @@
 
 import datetime
-from typing import Optional, Iterator
+from typing import Optional, Union, Iterator
 
 from cachelib.simple import SimpleCache
-import rich
 
 from ._keycloak_client import KeycloakClient
-from ._interfaces import DatetimeProvider, TokenProvider, Credentials, SupportsExhange, SupportsRefresh
+from ._interfaces import DatetimeProvider, TokenProvider, SupportsExhange, SupportsRefresh
 from ._model import ClientCredentials, ResourceOwnerCredentials
 from ._token import KeycloakToken
 
 
-def cache_key(credentials: Credentials, token: Optional[str]=None) -> str:
+def cache_key(credentials: Union[ClientCredentials, ResourceOwnerCredentials], token: Optional[str]=None) -> str:
 
 	if isinstance(credentials, ClientCredentials):
 		key = f'{credentials.client_id};{credentials.scopes}'
@@ -30,7 +29,7 @@ class ClientCredentialsTokenProvider:
 
 	token_cache = SimpleCache(threshold=100)
 
-	def __init__(self, keycloak_client: KeycloakClient, credentials: Credentials, datetime_provider: DatetimeProvider):
+	def __init__(self, keycloak_client: KeycloakClient, credentials: Union[ClientCredentials, ResourceOwnerCredentials], datetime_provider: DatetimeProvider):
 		self.now = datetime_provider
 		self.keycloak = keycloak_client
 		self.credentials = credentials
@@ -55,7 +54,7 @@ class ClientCredentialsTokenProvider:
 				self.token_cache.set(key, token, timeout=token.expiration(self.now()))
 				yield token
 
-		token = self.keycloak.get_token(self.credentials.request())
+		token = self.keycloak.get_token(self.credentials)
 		self.token_cache.set(key, token, timeout=token.expiration(self.now()))
 
 		yield token
@@ -103,7 +102,7 @@ class TokenProviderFactory:
 		self.keycloak = keycloak_client
 		self.now = datetime_provider or datetime.datetime.now
 
-	def client_credentials(self, credentials: Credentials) -> TokenProvider:
+	def client_credentials(self, credentials: Union[ClientCredentials, ResourceOwnerCredentials]) -> TokenProvider:
 		return ClientCredentialsTokenProvider(
 			self.keycloak,
 			credentials,

@@ -48,19 +48,14 @@ class TokenRequest(Protocol):
 		...
 
 
-class Credentials(Protocol):
-
-	def request(self) -> TokenRequest:
-		...
-
 @runtime_checkable
-class SupportsExhange(Credentials, Protocol):
+class SupportsExhange(Protocol):
 
 	def exchange(self, subject_token: str) -> TokenRequest:
 		...
 
 @runtime_checkable
-class SupportsRefresh(Credentials, Protocol):
+class SupportsRefresh(Protocol):
 
 	def refresh(self, refresh_token: str) -> TokenRequest:
 		...
