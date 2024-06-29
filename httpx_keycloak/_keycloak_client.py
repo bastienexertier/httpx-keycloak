@@ -60,19 +60,18 @@ class KeycloakClient:
 		request_body |= token_request.to_request_body()
 
 		if 'client_secret_basic' in auth_methods_supported:
-			auth = httpx.BasicAuth(token_request.client_id(), token_request.client_secret() or '')
+			auth = httpx.BasicAuth(token_request.client_id, token_request.client_secret or '')
 		elif 'client_secret_post' in auth_methods_supported:
 			auth = None
-			request_body['client_id'] = token_request.client_id()
-			client_secret = token_request.client_secret()
-			if client_secret:
-				request_body['client_secret'] = client_secret
+			request_body['client_id'] = token_request.client_id
+			if token_request.client_secret:
+				request_body['client_secret'] = token_request.client_secret
 
 		else:
 			raise KeycloakError('No token auth method supported')
 
-		if token_request.credentials.scopes:
-			request_body["scope"] = str.join(" ", token_request.credentials.scopes)
+		if token_request.scopes:
+			request_body["scope"] = str.join(" ", token_request.scopes)
 
 		response = self.http.post(
 			openid_config['token_endpoint'],

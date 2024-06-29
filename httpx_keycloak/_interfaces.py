@@ -3,7 +3,7 @@ import datetime
 from typing import Optional, Literal, Callable, Protocol, Iterator, runtime_checkable
 
 
-from ._token import KeycloakToken
+from ._token import KeycloakToken, Scopes
 
 
 GrantType = Literal[
@@ -32,10 +32,16 @@ class TokenRequest(Protocol):
 	def grant_type(self) -> GrantType:
 		...
 
+	@property
 	def client_id(self) -> str:
 		...
 
+	@property
 	def client_secret(self) -> Optional[str]:
+		...
+
+	@property
+	def scopes(self) -> Scopes:
 		...
 
 	def to_request_body(self) -> dict[str, str]:

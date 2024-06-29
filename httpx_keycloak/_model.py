@@ -27,15 +27,6 @@ class ClientCredentials:
 		""" Returns a copy of the credentials with the given scopes """
 		return self.__class__(self.client_id, self.client_secret, scopes)
 
-	def credentials_as_tuple(self) -> tuple[str, str]:
-		return (self.client_id, self.client_secret)
-
-	def credentials_as_dict(self) -> dict[str, str]:
-		return {
-			'client_id': self.client_id,
-			'client_secret': self.client_secret,
-		}
-
 	def request(self) -> TokenRequest:
 		return ClientCredentialsTokenRequest(self)
 
@@ -58,14 +49,6 @@ class ResourceOwnerCredentials:
 		""" Returns a copy of the credentials with the given scopes """
 		return self.__class__(self.username, self.password, self.client_id, scopes)
 
-	def credentials_as_tuple(self) -> tuple[str, str]:
-		return (self.client_id, '')
-
-	def credentials_as_dict(self) -> dict[str, str]:
-		return {
-			'client_id': self.client_id,
-		}
-
 	def request(self) -> TokenRequest:
 		return ResourceOwnerTokenRequest(self)
 
@@ -75,24 +58,6 @@ class ResourceOwnerCredentials:
 
 Credentials = Union[ClientCredentials, ResourceOwnerCredentials]
 
-from typing import Protocol
-
-class TokenRequest(Protocol):
-
-	@property
-	def grant_type(self) -> GrantType:
-		...
-
-	def client_id(self) -> str:
-		...
-
-	def client_secret(self) -> Optional[str]:
-		...
-
-	def to_request_body(self) -> dict[str, str]:
-		...
-
-
 
 @dataclass
 class ClientCredentialsTokenRequest:
@@ -100,11 +65,17 @@ class ClientCredentialsTokenRequest:
 	credentials: ClientCredentials
 	grant_type: GrantType = "client_credentials"
 
+	@property
 	def client_id(self) -> str:
 		return self.credentials.client_id
 
+	@property
 	def client_secret(self) -> Optional[str]:
 		return self.credentials.client_secret
+
+	@property
+	def scopes(self) -> Scopes:
+		return self.credentials.scopes
 
 	def to_request_body(self) -> dict[str, str]:
 		return {}
@@ -115,11 +86,17 @@ class ResourceOwnerTokenRequest:
 	credentials: ResourceOwnerCredentials
 	grant_type: GrantType = "password"
 
+	@property
 	def client_id(self) -> str:
 		return self.credentials.client_id
 
+	@property
 	def client_secret(self) -> Optional[str]:
 		return None
+
+	@property
+	def scopes(self) -> Scopes:
+		return self.credentials.scopes
 
 	def to_request_body(self) -> dict[str, str]:
 		return {
@@ -134,11 +111,17 @@ class TokenExchangeTokenRequest:
 	subject_token: str
 	grant_type: GrantType = "urn:ietf:params:oauth:grant-type:token-exchange"
 
+	@property
 	def client_id(self) -> str:
 		return self.credentials.client_id
 
+	@property
 	def client_secret(self) -> Optional[str]:
 		return self.credentials.client_secret
+
+	@property
+	def scopes(self) -> Scopes:
+		return self.credentials.scopes
 
 	def to_request_body(self) -> dict[str, str]:
 		return {
@@ -153,11 +136,17 @@ class ClientCredentialsRefreshTokenRequest:
 	refresh_token: str
 	grant_type: GrantType = "refresh_token"
 
+	@property
 	def client_id(self) -> str:
 		return self.credentials.client_id
 
+	@property
 	def client_secret(self) -> Optional[str]:
 		return self.credentials.client_secret
+
+	@property
+	def scopes(self) -> Scopes:
+		return self.credentials.scopes
 
 	def to_request_body(self) -> dict[str, str]:
 		return {
@@ -171,11 +160,17 @@ class ResourceOwnerCredentialsRefreshTokenRequest:
 	refresh_token: str
 	grant_type: GrantType = "refresh_token"
 
+	@property
 	def client_id(self) -> str:
 		return self.credentials.client_id
 
+	@property
 	def client_secret(self) -> Optional[str]:
 		return None
+
+	@property
+	def scopes(self) -> Scopes:
+		return self.credentials.scopes
 
 	def to_request_body(self) -> dict[str, str]:
 		return {
