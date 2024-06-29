@@ -1,23 +1,11 @@
 
-from typing import Literal
+from typing import Literal, Union
 from dataclasses import dataclass
 
-import httpx
-
-from ._interfaces import TokenRequest
+from ._interfaces import TokenRequest, GrantType
 from ._token import Scopes
 
 
-GrantType = Literal[
-	"authorization_code",
-	"implicit",
-	"refresh_token",
-	"password",
-	"client_credentials",
-	"urn:openid:params:grant-type:ciba",
-	"urn:ietf:params:oauth:grant-type:token-exchange",
-	"urn:ietf:params:oauth:grant-type:device_code"
-]
 
 AuthMethod = Literal[
 	"private_key_jwt",
@@ -39,11 +27,23 @@ class ClientCredentials:
 		""" Returns a copy of the credentials with the given scopes """
 		return self.__class__(self.client_id, self.client_secret, scopes)
 
+	def credentials_as_tuple(self) -> tuple[str, str]:
+		return (self.client_id, self.client_secret)
+
+	def credentials_as_dict(self) -> dict[str, str]:
+		return {
+			'client_id': self.client_id,
+			'client_secret': self.client_secret,
+		}
+
 	def request(self) -> TokenRequest:
 		return ClientCredentialsTokenRequest(self)
 
 	def exchange(self, subject_token: str) -> TokenRequest:
 		return TokenExchangeTokenRequest(self, subject_token)
+
+	def refresh(self, refresh_token: str) -> TokenRequest:
+		return ClientCredentialsRefreshTokenRequest(self, refresh_token)
 
 @dataclass
 class ResourceOwnerCredentials:
@@ -58,12 +58,22 @@ class ResourceOwnerCredentials:
 		""" Returns a copy of the credentials with the given scopes """
 		return self.__class__(self.username, self.password, self.client_id, scopes)
 
+	def credentials_as_tuple(self) -> tuple[str, str]:
+		return (self.client_id, '')
+
+	def credentials_as_dict(self) -> dict[str, str]:
+		return {
+			'client_id': self.client_id,
+		}
+
 	def request(self) -> TokenRequest:
 		return ResourceOwnerTokenRequest(self)
 
 	def refresh(self, refresh_token: str) -> TokenRequest:
-		return RefreshTokenRequest(self, refresh_token)
+		return ResourceOwnerCredentialsRefreshTokenRequest(self, refresh_token)
 
+
+Credentials = Union[ClientCredentials, ResourceOwnerCredentials]
 
 
 @dataclass
@@ -72,21 +82,11 @@ class ClientCredentialsTokenRequest:
 	credentials: ClientCredentials
 	grant_type: GrantType = "client_credentials"
 
-	def to_basic_auth(self) -> httpx.BasicAuth:
-		return httpx.BasicAuth(self.credentials.client_id, self.credentials.client_secret)
+	def to_basic_auth(self) -> tuple[str, str]:
+		return self.credentials.credentials_as_tuple()
 
-	def request_body(self, *, include_credentials:bool=True) -> dict[str, str]:
-
-		data: dict[str, str] = {"grant_type": self.grant_type}
-
-		if include_credentials:
-			data["client_id"] = self.credentials.client_id
-			data["client_secret"] = self.credentials.client_secret
-
-		if self.credentials.scopes:
-			data["scope"] = str.join(" ", self.credentials.scopes)
-
-		return data
+	def to_request_body(self) -> dict[str, str]:
+		return {}
 
 @dataclass
 class ResourceOwnerTokenRequest:
@@ -94,24 +94,14 @@ class ResourceOwnerTokenRequest:
 	credentials: ResourceOwnerCredentials
 	grant_type: GrantType = "password"
 
-	def to_basic_auth(self) -> httpx.BasicAuth:
-		return httpx.BasicAuth(self.credentials.client_id, "")
+	def to_basic_auth(self) -> tuple[str, str]:
+		return self.credentials.credentials_as_tuple()
 
-	def request_body(self, *, include_credentials:bool=True) -> dict[str, str]:
-
-		data = {
-				"username": self.credentials.username,
-				"password": self.credentials.password,
-				"grant_type": "password",
-			}
-
-		if include_credentials:
-			data["client_id"] = self.credentials.client_id
-
-		if self.credentials.scopes:
-			data["scope"] = str.join(" ", self.credentials.scopes)
-
-		return data
+	def to_request_body(self) -> dict[str, str]:
+		return {
+			"username": self.credentials.username,
+			"password": self.credentials.password,
+		}
 
 @dataclass
 class TokenExchangeTokenRequest:
@@ -120,46 +110,41 @@ class TokenExchangeTokenRequest:
 	subject_token: str
 	grant_type: GrantType = "urn:ietf:params:oauth:grant-type:token-exchange"
 
-	def to_basic_auth(self) -> httpx.BasicAuth:
-		return httpx.BasicAuth(self.credentials.client_id, self.credentials.client_secret)
+	def to_basic_auth(self) -> tuple[str, str]:
+		return self.credentials.credentials_as_tuple()
 
-	def request_body(self, *, include_credentials:bool=True) -> dict[str, str]:
-
-		data: dict[str, str] = {
-			"grant_type": self.grant_type,
+	def to_request_body(self) -> dict[str, str]:
+		return {
 			"subject_token": self.subject_token,
 			"subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
 		}
 
-		if include_credentials:
-			data["client_id"] = self.credentials.client_id
-			data["client_secret"] = self.credentials.client_secret
+@dataclass
+class ClientCredentialsRefreshTokenRequest:
 
-		if self.credentials.scopes:
-			data["scope"] = str.join(" ", self.credentials.scopes)
+	credentials: ClientCredentials
+	refresh_token: str
+	grant_type: GrantType = "refresh_token"
 
-		return data
+	def to_basic_auth(self) -> tuple[str, str]:
+		return self.credentials.credentials_as_tuple()
+
+	def to_request_body(self) -> dict[str, str]:
+		return {
+			"refresh_token": self.refresh_token
+		}
 
 @dataclass
-class RefreshTokenRequest:
+class ResourceOwnerCredentialsRefreshTokenRequest:
 
 	credentials: ResourceOwnerCredentials
 	refresh_token: str
 	grant_type: GrantType = "refresh_token"
 
-	def to_basic_auth(self) -> httpx.BasicAuth:
-		return httpx.BasicAuth(self.credentials.client_id, "")
+	def to_basic_auth(self) -> tuple[str, str]:
+		return self.credentials.credentials_as_tuple()
 
-	def request_body(self, *, include_credentials:bool=True) -> dict[str, str]:
-
-		data: dict[str, str] = {
-			"username": self.credentials.username,
-			"password": self.credentials.password,
-			"grant_type": self.grant_type,
+	def to_request_body(self) -> dict[str, str]:
+		return {
 			"refresh_token": self.refresh_token
 		}
-
-		if include_credentials:
-			data["client_id"] = self.credentials.client_id
-
-		return data

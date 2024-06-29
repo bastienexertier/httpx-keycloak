@@ -1,10 +1,22 @@
 
 import datetime
-from typing import Callable, Protocol, Iterator, runtime_checkable
+from typing import Literal, Callable, Protocol, Iterator, runtime_checkable
 
 import httpx
 
 from ._token import KeycloakToken
+
+
+GrantType = Literal[
+	"authorization_code",
+	"implicit",
+	"refresh_token",
+	"password",
+	"client_credentials",
+	"urn:openid:params:grant-type:ciba",
+	"urn:ietf:params:oauth:grant-type:token-exchange",
+	"urn:ietf:params:oauth:grant-type:device_code"
+]
 
 
 class KeycloakError(Exception):
@@ -16,10 +28,14 @@ DatetimeProvider = Callable[[], datetime.datetime]
 
 class TokenRequest(Protocol):
 
-	def request_body(self, *, include_credentials:bool=True) -> dict[str, str]:
+	@property
+	def grant_type(self) -> GrantType:
 		...
 
-	def to_basic_auth(self) -> httpx.BasicAuth:
+	def to_basic_auth(self) -> tuple[str, str]:
+		...
+
+	def to_request_body(self) -> dict[str, str]:
 		...
 
 

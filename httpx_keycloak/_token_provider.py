@@ -3,6 +3,7 @@ import datetime
 from typing import Optional, Iterator
 
 from cachelib.simple import SimpleCache
+import rich
 
 from ._keycloak_client import KeycloakClient
 from ._interfaces import DatetimeProvider, TokenProvider, Credentials, SupportsExhange, SupportsRefresh
@@ -77,6 +78,16 @@ class TokenExchanger:
 
 		if token:
 			if not token.has_expired(self.now()):
+				yield token
+
+			if (
+				self.keycloak.supports_grant('refresh_token')
+				and isinstance(self.credentials, SupportsRefresh)
+				and token.refresh_token
+				and not token.refresh_token_has_expired(self.now())
+			):
+				token = self.keycloak.get_token(self.credentials.refresh(token.refresh_token))
+				self.exchanged_token_cache.set(key, token, timeout=token.expiration(self.now()))
 				yield token
 
 		token = self.keycloak.get_token(self.credentials.exchange(subject_token))
