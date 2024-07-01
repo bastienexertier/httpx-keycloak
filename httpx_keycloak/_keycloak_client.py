@@ -20,6 +20,11 @@ class OpenIDConfiguration(TypedDict):
 	grant_types_supported: list[str]
 
 
+Auth = tuple[str, str]
+Body = dict[str, str]
+AuthAndBody = tuple[Optional[Auth], Body]
+RequestBuilder = Callable[[TokenRequest, Body], AuthAndBody]
+
 class KeycloakClient:
 
 	def __init__(self, http: httpx.Client, openid_config: Optional[OpenIDConfiguration]=None, datetime_provider: Optional[DatetimeProvider]=None):
@@ -27,7 +32,7 @@ class KeycloakClient:
 		self.now = datetime_provider or datetime.datetime.now
 		self.__openid_config = openid_config
 
-		self.__builders: dict[str, Callable[[TokenRequest, dict[str, str]], tuple[Optional[tuple[str, str]], dict[str, str]]]] = {
+		self.__builders: dict[str, RequestBuilder] = {
 			'client_secret_basic': self.__build_client_secret_basic,
 			'client_secret_post': self.__build_client_secret_post,
 			'client_secret_jwt': self.__build_client_secret_jwt,
@@ -61,7 +66,10 @@ class KeycloakClient:
 		), None)
 
 		if auth_method is None:
-			raise KeycloakError(f'None of the requested auth method is supported: {str.join(", ", auth_methods)}')
+			raise KeycloakError(
+				f'None of the requested auth method is supported: {", ".join(auth_methods)} '
+				f'Supported methods are {", ".join(auth_methods_supported)}'
+			)
 
 		request_body: dict[str, str]
 		request_body = {'grant_type': token_request.grant_type}
@@ -102,16 +110,18 @@ class KeycloakClient:
 
 
 
-	def __build_client_secret_basic(self, request: TokenRequest, data: dict[str, str]) -> tuple[Optional[tuple[str, str]], dict[str, str]]:
+	@staticmethod
+	def __build_client_secret_basic(request: TokenRequest, data: Body) -> AuthAndBody:
 		return (request.client_id, request.client_secret or ''), data
 
-	def __build_client_secret_post(self, request: TokenRequest, data: dict[str, str]) -> tuple[Optional[tuple[str, str]], dict[str, str]]:
+	@staticmethod
+	def __build_client_secret_post(request: TokenRequest, data: Body) -> AuthAndBody:
 		data['client_id'] = request.client_id
 		if request.client_secret:
 			data['client_secret'] = request.client_secret
 		return None, data
 
-	def __build_client_secret_jwt(self, request: TokenRequest, data: dict[str, str]) -> tuple[Optional[tuple[str, str]], dict[str, str]]:
+	def __build_client_secret_jwt(self, request: TokenRequest, data: Body) -> AuthAndBody:
 		import uuid
 		import jwt
 		client_assertion = jwt.encode({
