@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from ._interfaces import TokenRequest, GrantType, AuthMethods
 from ._token import Scopes
 
+DefaultAuthMethods: AuthMethods =  ('client_secret_basic', 'client_secret_post')
 
 @dataclass
 class ClientCredentials:
@@ -13,7 +14,7 @@ class ClientCredentials:
 	client_secret: str
 	scopes: Scopes = Scopes()
 
-	auth_methods: AuthMethods = ('client_secret_basic', 'client_secret_post')
+	auth_methods: AuthMethods = DefaultAuthMethods
 
 	@property
 	def grant_type(self) -> GrantType:
@@ -40,8 +41,7 @@ class ClientCredentials:
 			auth_methods=self.auth_methods,
 		)
 
-	def refresh(self,
-		refresh_token: str) -> TokenRequest:
+	def refresh(self, refresh_token: str) -> TokenRequest:
 		return ClientCredentialsRefreshTokenRequest(
 			refresh_token=refresh_token,
 			client_id=self.client_id,
@@ -60,7 +60,7 @@ class ResourceOwnerCredentials:
 	client_secret: Optional[str] = None
 	scopes: Scopes = Scopes()
 
-	auth_methods: AuthMethods = ('client_secret_basic', 'client_secret_post')
+	auth_methods: AuthMethods = DefaultAuthMethods
 
 	@property
 	def grant_type(self) -> GrantType:
@@ -98,13 +98,13 @@ class ResourceOwnerCredentials:
 @dataclass
 class TokenExchangeTokenRequest:
 
-	auth_methods: AuthMethods
-
 	subject_token: str
 
 	client_id: str
 	client_secret: str
 	scopes: Scopes = Scopes()
+
+	auth_methods: AuthMethods = DefaultAuthMethods
 
 	@property
 	def grant_type(self) -> GrantType:
@@ -116,16 +116,25 @@ class TokenExchangeTokenRequest:
 			"subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
 		}
 
+	def refresh(self, refresh_token: str) -> TokenRequest:
+		return ClientCredentialsRefreshTokenRequest(
+			refresh_token=refresh_token,
+			client_id=self.client_id,
+			client_secret=self.client_secret,
+			scopes=self.scopes,
+			auth_methods=self.auth_methods,
+		)
+
 @dataclass
 class ClientCredentialsRefreshTokenRequest:
-
-	auth_methods: AuthMethods
 
 	refresh_token: str
 
 	client_id: str
 	client_secret: str
 	scopes: Scopes = Scopes()
+
+	auth_methods: AuthMethods = DefaultAuthMethods
 
 	@property
 	def grant_type(self) -> GrantType:
@@ -139,8 +148,6 @@ class ClientCredentialsRefreshTokenRequest:
 @dataclass
 class ResourceOwnerCredentialsRefreshTokenRequest:
 
-	auth_methods: AuthMethods
-
 	refresh_token: str
 
 	username: str
@@ -149,6 +156,8 @@ class ResourceOwnerCredentialsRefreshTokenRequest:
 	client_id: str
 	client_secret: Optional[str] = None
 	scopes: Scopes = Scopes()
+
+	auth_methods: AuthMethods = DefaultAuthMethods
 
 	@property
 	def grant_type(self) -> GrantType:
