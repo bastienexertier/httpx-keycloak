@@ -25,16 +25,22 @@ class KeycloakClient:
 	def __init__(self, http: httpx.Client, datetime_provider: Optional[DatetimeProvider]=None):
 		self.http = http
 		self.now = datetime_provider or datetime.datetime.now
-		self.openid_config = self.__get_openid_config()
+		self.__openid_config: Optional[OpenIDConfiguration] = None
 
 
-	def __get_openid_config(self) -> OpenIDConfiguration:
+	def load_openid_config(self) -> OpenIDConfiguration:
 		response = self.http.get('/.well-known/openid-configuration/')
 
 		if response.status_code == 404:
 			raise KeycloakError(f'OpenID configuration not found at {response.url}')
 
 		return response.json()
+
+	@property
+	def openid_config(self) -> OpenIDConfiguration:
+		if not self.__openid_config:
+			self.__openid_config = self.load_openid_config()
+		return self.__openid_config
 
 	def supports_grant(self, grant: GrantType) -> bool:
 		return grant in self.openid_config['grant_types_supported']
@@ -45,7 +51,9 @@ class KeycloakClient:
 		A TokenRequest is an object that can provide a Authentication header and request body.
 		"""
 
-		auth_methods_supported = self.openid_config['token_endpoint_auth_methods_supported']
+		openid_config = self.openid_config
+
+		auth_methods_supported = openid_config['token_endpoint_auth_methods_supported']
 
 		if 'client_secret_post' in auth_methods_supported:
 			request_body = token_request.request_body()
@@ -57,7 +65,7 @@ class KeycloakClient:
 			raise KeycloakError('No token auth method supported')
 
 		response = self.http.post(
-			self.openid_config['token_endpoint'],
+			openid_config['token_endpoint'],
 			data=request_body,
 			auth=auth or httpx.USE_CLIENT_DEFAULT
 		)
