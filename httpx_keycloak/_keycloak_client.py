@@ -22,10 +22,10 @@ class OpenIDConfiguration(TypedDict):
 
 class KeycloakClient:
 
-	def __init__(self, http: httpx.Client, datetime_provider: Optional[DatetimeProvider]=None):
+	def __init__(self, http: httpx.Client, openid_config: Optional[OpenIDConfiguration]=None, datetime_provider: Optional[DatetimeProvider]=None):
 		self.http = http
 		self.now = datetime_provider or datetime.datetime.now
-		self.__openid_config: Optional[OpenIDConfiguration] = None
+		self.__openid_config = openid_config
 
 		self.__builders: dict[str, Callable[[TokenRequest, dict[str, str]], tuple[Optional[tuple[str, str]], dict[str, str]]]] = {
 			'client_secret_basic': self.__build_client_secret_basic,
