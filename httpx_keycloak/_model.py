@@ -22,13 +22,31 @@ class ClientCredentials:
 
 	def with_scopes(self, scopes: Scopes):
 		""" Returns a copy of the credentials with the given scopes """
-		return self.__class__(self.client_id, self.client_secret, scopes)
+		return self.__class__(
+			client_id=self.client_id,
+			client_secret=self.client_secret,
+			scopes=scopes,
+			auth_methods=self.auth_methods,
+		)
 
 	def exchange(self, subject_token: str) -> TokenRequest:
-		return TokenExchangeTokenRequest(self.auth_methods, subject_token, self.client_id, self.client_secret, self.scopes)
+		return TokenExchangeTokenRequest(
+			subject_token=subject_token,
+			client_id=self.client_id,
+			client_secret=self.client_secret,
+			scopes=self.scopes,
+			auth_methods=self.auth_methods,
+		)
 
-	def refresh(self, refresh_token: str) -> TokenRequest:
-		return ClientCredentialsRefreshTokenRequest(self.auth_methods, refresh_token, self.client_id, self.client_secret, self.scopes)
+	def refresh(self,
+		refresh_token: str) -> TokenRequest:
+		return ClientCredentialsRefreshTokenRequest(
+			refresh_token=refresh_token,
+			client_id=self.client_id,
+			client_secret=self.client_secret,
+			scopes=self.scopes,
+			auth_methods=self.auth_methods,
+		)
 
 @dataclass
 class ResourceOwnerCredentials:
@@ -52,17 +70,24 @@ class ResourceOwnerCredentials:
 
 	def with_scopes(self, scopes: Scopes):
 		""" Returns a copy of the credentials with the given scopes """
-		return self.__class__(self.username, self.password, self.client_id, self.client_secret, scopes)
+		return self.__class__(
+			username=self.username,
+			password=self.password,
+			client_id=self.client_id,
+			client_secret=self.client_secret,
+			scopes=scopes,
+			auth_methods=self.auth_methods
+		)
 
 	def refresh(self, refresh_token: str) -> TokenRequest:
 		return ResourceOwnerCredentialsRefreshTokenRequest(
-			self.auth_methods,
-			refresh_token,
-			self.username,
-			self.password,
-			self.client_id,
-			self.client_secret,
-			self.scopes
+			refresh_token=refresh_token,
+			username=self.username,
+			password=self.password,
+			client_id=self.client_id,
+			client_secret=self.client_secret,
+			scopes=self.scopes,
+			auth_methods=self.auth_methods,
 		)
 
 
