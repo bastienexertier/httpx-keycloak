@@ -91,8 +91,6 @@ class ResourceOwnerCredentials:
 		)
 
 
-Credentials = Union[ClientCredentials, ResourceOwnerCredentials]
-
 @dataclass
 class TokenExchangeTokenRequest:
 
