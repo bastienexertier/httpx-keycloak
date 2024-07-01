@@ -37,15 +37,12 @@ class ResourceOwnerCredentials:
 	password: str
 
 	client_id: str
+	client_secret: Optional[str] = None
 	scopes: Scopes = Scopes()
 
 	auth_methods: AuthMethods = ('client_secret_basic', 'client_secret_post')
 
 	grant_type: GrantType = "password"
-
-	@property
-	def client_secret(self) -> Optional[str]:
-		return None
 
 	def to_request_body(self) -> dict[str, str]:
 		return {
@@ -55,10 +52,18 @@ class ResourceOwnerCredentials:
 
 	def with_scopes(self, scopes: Scopes):
 		""" Returns a copy of the credentials with the given scopes """
-		return self.__class__(self.username, self.password, self.client_id, scopes)
+		return self.__class__(self.username, self.password, self.client_id, self.client_secret, scopes)
 
 	def refresh(self, refresh_token: str) -> TokenRequest:
-		return ResourceOwnerCredentialsRefreshTokenRequest(self.auth_methods, refresh_token, self.username, self.password, self.client_id, self.scopes)
+		return ResourceOwnerCredentialsRefreshTokenRequest(
+			self.auth_methods,
+			refresh_token,
+			self.username,
+			self.password,
+			self.client_id,
+			self.client_secret,
+			self.scopes
+		)
 
 
 Credentials = Union[ClientCredentials, ResourceOwnerCredentials]
@@ -111,13 +116,10 @@ class ResourceOwnerCredentialsRefreshTokenRequest:
 	password: str
 
 	client_id: str
+	client_secret: Optional[str] = None
 	scopes: Scopes = Scopes()
 
 	grant_type: GrantType = "refresh_token"
-
-	@property
-	def client_secret(self) -> Optional[str]:
-		return None
 
 	def to_request_body(self) -> dict[str, str]:
 		return {
