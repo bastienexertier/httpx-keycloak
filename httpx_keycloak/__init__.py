@@ -5,15 +5,9 @@ from ._keycloak_client import (
 )
 from ._interfaces import (
 	DatetimeProvider,
-	TokenProvider
 )
 from ._transport import (
-	ClientAuthenticationTransport,
-	TokenExchangeAuthenticationTransport
-)
-from ._token_provider import (
-	TokenProviderFactory,
-	ClientCredentialsTokenProvider
+	AuthenticatingTransportFactory
 )
 from ._model import (
 	ClientCredentials,

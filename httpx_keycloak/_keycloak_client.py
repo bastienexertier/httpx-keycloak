@@ -4,7 +4,7 @@ from typing import TypedDict, Optional, Callable
 
 import httpx
 
-from ._interfaces import DatetimeProvider, KeycloakError, TokenRequest
+from ._interfaces import DatetimeProvider, KeycloakError, Credentials
 from ._token import KeycloakToken
 from ._model import GrantType
 
@@ -23,7 +23,7 @@ class OpenIDConfiguration(TypedDict):
 Auth = tuple[str, str]
 Body = dict[str, str]
 AuthAndBody = tuple[Optional[Auth], Body]
-RequestBuilder = Callable[[TokenRequest, Body], AuthAndBody]
+RequestBuilder = Callable[[Credentials, Body], AuthAndBody]
 
 class KeycloakClient:
 
@@ -41,10 +41,10 @@ class KeycloakClient:
 	def supports_grant(self, grant: GrantType) -> bool:
 		return grant in self.openid_config['grant_types_supported']
 
-	def get_token(self, token_request: TokenRequest) -> KeycloakToken:
+	def get_token(self, token_request: Credentials) -> KeycloakToken:
 		"""
-		Requests a new token from a TokenRequest.
-		A TokenRequest is an object that can provide a Authentication header and request body.
+		Requests a new token from a Credentials.
+		A Credentials is an object that can provide a Authentication header and request body.
 		"""
 
 		openid_config = self.openid_config
@@ -111,17 +111,17 @@ class KeycloakClient:
 
 
 	@staticmethod
-	def __build_client_secret_basic(request: TokenRequest, data: Body) -> AuthAndBody:
+	def __build_client_secret_basic(request: Credentials, data: Body) -> AuthAndBody:
 		return (request.client_id, request.client_secret or ''), data
 
 	@staticmethod
-	def __build_client_secret_post(request: TokenRequest, data: Body) -> AuthAndBody:
+	def __build_client_secret_post(request: Credentials, data: Body) -> AuthAndBody:
 		data['client_id'] = request.client_id
 		if request.client_secret:
 			data['client_secret'] = request.client_secret
 		return None, data
 
-	def __build_client_secret_jwt(self, request: TokenRequest, data: Body) -> AuthAndBody:
+	def __build_client_secret_jwt(self, request: Credentials, data: Body) -> AuthAndBody:
 		import uuid
 		import jwt
 		client_assertion = jwt.encode({

@@ -36,7 +36,7 @@ DatetimeProvider = Callable[[], datetime.datetime]
 
 
 
-class TokenRequest(Protocol):
+class Credentials(Protocol):
 
 	auth_methods: AuthMethods
 
@@ -59,27 +59,18 @@ class TokenRequest(Protocol):
 	def to_request_body(self) -> dict[str, str]:
 		...
 
+	def key(self) -> str:
+		...
+
 
 @runtime_checkable
-class SupportsExhange(TokenRequest, Protocol):
+class SupportsExhange(Credentials, Protocol):
 
-	def exchange(self, subject_token: str) -> TokenRequest:
+	def exchange(self, subject_token: str) -> Credentials:
 		...
 
 @runtime_checkable
-class SupportsRefresh(TokenRequest, Protocol):
+class SupportsRefresh(Credentials, Protocol):
 
-	def refresh(self, refresh_token: str) -> TokenRequest:
-		...
-
-
-class TokenProvider(Protocol):
-
-	def get_token(self) -> Iterator[KeycloakToken]:
-		...
-
-
-class TokenExchanger(Protocol):
-
-	def exchange_token(self, subject_token: str) -> Iterator[KeycloakToken]:
+	def refresh(self, refresh_token: str) -> Credentials:
 		...

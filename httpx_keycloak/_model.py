@@ -2,7 +2,7 @@
 from typing import Optional
 from dataclasses import dataclass
 
-from ._interfaces import TokenRequest, GrantType, AuthMethods
+from ._interfaces import Credentials, GrantType, AuthMethods
 from ._token import Scopes
 
 DefaultAuthMethods: AuthMethods =  ('client_secret_basic', 'client_secret_post')
@@ -23,6 +23,9 @@ class ClientCredentials:
 	def to_request_body(self) -> dict[str, str]:
 		return {}
 
+	def key(self) -> str:
+		return f'{self.client_id}:{self.scopes}'
+
 	def with_scopes(self, scopes: Scopes):
 		""" Returns a copy of the credentials with the given scopes """
 		return self.__class__(
@@ -32,8 +35,8 @@ class ClientCredentials:
 			auth_methods=self.auth_methods,
 		)
 
-	def exchange(self, subject_token: str) -> TokenRequest:
-		return TokenExchangeTokenRequest(
+	def exchange(self, subject_token: str) -> Credentials:
+		return TokenExchangeCredentials(
 			subject_token=subject_token,
 			client_id=self.client_id,
 			client_secret=self.client_secret,
@@ -41,8 +44,8 @@ class ClientCredentials:
 			auth_methods=self.auth_methods,
 		)
 
-	def refresh(self, refresh_token: str) -> TokenRequest:
-		return ClientCredentialsRefreshTokenRequest(
+	def refresh(self, refresh_token: str) -> Credentials:
+		return ClientCredentialsRefreshCredentials(
 			refresh_token=refresh_token,
 			client_id=self.client_id,
 			client_secret=self.client_secret,
@@ -72,6 +75,9 @@ class ResourceOwnerCredentials:
 			"password": self.password,
 		}
 
+	def key(self) -> str:
+		return f'{self.client_id}:{self.username}:{self.scopes}'
+
 	def with_scopes(self, scopes: Scopes):
 		""" Returns a copy of the credentials with the given scopes """
 		return self.__class__(
@@ -83,8 +89,8 @@ class ResourceOwnerCredentials:
 			auth_methods=self.auth_methods
 		)
 
-	def refresh(self, refresh_token: str) -> TokenRequest:
-		return ResourceOwnerCredentialsRefreshTokenRequest(
+	def refresh(self, refresh_token: str) -> Credentials:
+		return ResourceOwnerCredentialsRefreshCredentials(
 			refresh_token=refresh_token,
 			username=self.username,
 			password=self.password,
@@ -96,7 +102,7 @@ class ResourceOwnerCredentials:
 
 
 @dataclass
-class TokenExchangeTokenRequest:
+class TokenExchangeCredentials:
 
 	subject_token: str
 
@@ -116,8 +122,11 @@ class TokenExchangeTokenRequest:
 			"subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
 		}
 
-	def refresh(self, refresh_token: str) -> TokenRequest:
-		return ClientCredentialsRefreshTokenRequest(
+	def key(self) -> str:
+		return f'{self.client_id}:{self.subject_token}:{self.scopes}'
+
+	def refresh(self, refresh_token: str) -> Credentials:
+		return ClientCredentialsRefreshCredentials(
 			refresh_token=refresh_token,
 			client_id=self.client_id,
 			client_secret=self.client_secret,
@@ -126,7 +135,7 @@ class TokenExchangeTokenRequest:
 		)
 
 @dataclass
-class ClientCredentialsRefreshTokenRequest:
+class ClientCredentialsRefreshCredentials:
 
 	refresh_token: str
 
@@ -145,8 +154,11 @@ class ClientCredentialsRefreshTokenRequest:
 			"refresh_token": self.refresh_token
 		}
 
+	def key(self) -> str:
+		return f'{self.client_id}:{self.scopes}'
+
 @dataclass
-class ResourceOwnerCredentialsRefreshTokenRequest:
+class ResourceOwnerCredentialsRefreshCredentials:
 
 	refresh_token: str
 
@@ -167,3 +179,6 @@ class ResourceOwnerCredentialsRefreshTokenRequest:
 		return {
 			"refresh_token": self.refresh_token
 		}
+
+	def key(self) -> str:
+		return f'{self.client_id}:{self.username}:{self.scopes}'
