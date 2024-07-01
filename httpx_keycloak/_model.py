@@ -1,5 +1,5 @@
 
-from typing import Optional, Union
+from typing import Optional
 from dataclasses import dataclass
 
 from ._interfaces import TokenRequest, GrantType, AuthMethods
@@ -15,7 +15,9 @@ class ClientCredentials:
 
 	auth_methods: AuthMethods = ('client_secret_basic', 'client_secret_post')
 
-	grant_type: GrantType = "client_credentials"
+	@property
+	def grant_type(self) -> GrantType:
+		return "client_credentials"
 
 	def to_request_body(self) -> dict[str, str]:
 		return {}
@@ -60,7 +62,9 @@ class ResourceOwnerCredentials:
 
 	auth_methods: AuthMethods = ('client_secret_basic', 'client_secret_post')
 
-	grant_type: GrantType = "password"
+	@property
+	def grant_type(self) -> GrantType:
+		return "password"
 
 	def to_request_body(self) -> dict[str, str]:
 		return {
@@ -102,7 +106,9 @@ class TokenExchangeTokenRequest:
 	client_secret: str
 	scopes: Scopes = Scopes()
 
-	grant_type: GrantType = "urn:ietf:params:oauth:grant-type:token-exchange"
+	@property
+	def grant_type(self) -> GrantType:
+		return "urn:ietf:params:oauth:grant-type:token-exchange"
 
 	def to_request_body(self) -> dict[str, str]:
 		return {
@@ -121,7 +127,9 @@ class ClientCredentialsRefreshTokenRequest:
 	client_secret: str
 	scopes: Scopes = Scopes()
 
-	grant_type: GrantType = "refresh_token"
+	@property
+	def grant_type(self) -> GrantType:
+		return "refresh_token"
 
 	def to_request_body(self) -> dict[str, str]:
 		return {
@@ -142,7 +150,9 @@ class ResourceOwnerCredentialsRefreshTokenRequest:
 	client_secret: Optional[str] = None
 	scopes: Scopes = Scopes()
 
-	grant_type: GrantType = "refresh_token"
+	@property
+	def grant_type(self) -> GrantType:
+		return "refresh_token"
 
 	def to_request_body(self) -> dict[str, str]:
 		return {
