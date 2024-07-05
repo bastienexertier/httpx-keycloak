@@ -36,11 +36,11 @@ class TokenProvider:
 			):
 				token = self.keycloak.get_token(credentials.refresh(token.refresh_token))
 
-				self.token_cache.set(key, token, timeout=token.expiration(self.now()))
+				self.token_cache.set(key, token, timeout=token.expiration(self.now()).seconds)
 				yield token
 
 		token = self.keycloak.get_token(credentials)
 
-		self.token_cache.set(key, token, timeout=token.expiration(self.now()))
+		self.token_cache.set(key, token, timeout=token.expiration(self.now()).seconds)
 		yield token
 		self.token_cache.delete(key)

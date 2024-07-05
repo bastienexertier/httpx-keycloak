@@ -4,20 +4,15 @@ from typing import TypedDict, Optional, Callable
 
 import httpx
 
-from ._interfaces import DatetimeProvider, KeycloakError, Credentials
+from ._interfaces import AuthMethod, DatetimeProvider, KeycloakError, Credentials
 from ._token import KeycloakToken
 from ._model import GrantType
 
 
 class OpenIDConfiguration(TypedDict):
-	issuer: str
-	authorization_endpoint: str
 	token_endpoint: str
-	introspection_endpoint: str
-	userinfo_endpoint: str
-	end_session_endpoint: str
-	token_endpoint_auth_methods_supported: list[str]
-	grant_types_supported: list[str]
+	token_endpoint_auth_methods_supported: list[AuthMethod]
+	grant_types_supported: list[GrantType]
 
 
 Auth = tuple[str, str]

@@ -26,15 +26,6 @@ class ClientCredentials:
 	def key(self) -> str:
 		return f'{self.client_id}:{self.scopes}'
 
-	def with_scopes(self, scopes: Scopes):
-		""" Returns a copy of the credentials with the given scopes """
-		return self.__class__(
-			client_id=self.client_id,
-			client_secret=self.client_secret,
-			scopes=scopes,
-			auth_methods=self.auth_methods,
-		)
-
 	def exchange(self, subject_token: str) -> Credentials:
 		return TokenExchangeCredentials(
 			subject_token=subject_token,
@@ -55,6 +46,25 @@ class ClientCredentials:
 
 @dataclass
 class ResourceOwnerCredentials:
+
+	client_id: str
+	client_secret: Optional[str] = None
+	scopes: Scopes = Scopes()
+
+	auth_methods: AuthMethods = DefaultAuthMethods
+
+	def with_username_password(self, username: str, password: str):
+		return ResourceOwnerCredentialsWithUser(
+			username=username,
+			password=password,
+			client_id=self.client_id,
+			client_secret=self.client_secret,
+			scopes=self.scopes,
+			auth_methods=self.auth_methods,
+		)
+
+@dataclass
+class ResourceOwnerCredentialsWithUser:
 
 	username: str
 	password: str
@@ -77,17 +87,6 @@ class ResourceOwnerCredentials:
 
 	def key(self) -> str:
 		return f'{self.client_id}:{self.username}:{self.scopes}'
-
-	def with_scopes(self, scopes: Scopes):
-		""" Returns a copy of the credentials with the given scopes """
-		return self.__class__(
-			username=self.username,
-			password=self.password,
-			client_id=self.client_id,
-			client_secret=self.client_secret,
-			scopes=scopes,
-			auth_methods=self.auth_methods
-		)
 
 	def refresh(self, refresh_token: str) -> Credentials:
 		return ResourceOwnerCredentialsRefreshCredentials(

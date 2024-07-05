@@ -1,9 +1,9 @@
 
 import datetime
-from typing import Union, Optional, Literal, Callable, Protocol, Iterator, runtime_checkable
+from typing import Union, Optional, Literal, Callable, Protocol, runtime_checkable
 
 
-from ._token import KeycloakToken, Scopes
+from ._token import Scopes
 
 
 GrantType = Literal[
